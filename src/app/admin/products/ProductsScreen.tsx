@@ -53,7 +53,6 @@ export default function AdminProducts() {
       <div className="overflow-hidden rounded-2xl border border-line bg-white">
         <div className="divide-y divide-line">
           {products.map(product => {
-            const isCable = product.cable_pricing != null
             return (
               <div key={product.id} className="flex items-center gap-3 px-4 py-3">
                 {product.images[0] ? (
@@ -71,7 +70,6 @@ export default function AdminProducts() {
                   <p className="truncate font-semibold">{product.name}</p>
                   <p className="truncate text-label text-ink-muted">
                     {categoryLabel(categories, product.category)} · {formatNaira(product.price)}
-                    {isCable ? '/yd' : ''}
                   </p>
                   <button
                     type="button"

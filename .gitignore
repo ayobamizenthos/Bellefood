@@ -17,11 +17,9 @@ npm-debug.log*
 supabase/.temp
 supabase/.branches
 
-# Internal planning docs (not part of the shipped product)
-Zenthos_Energies_PRD_PRODUCTION.md
-
 .next
 next-env.d.ts
+tsconfig.tsbuildinfo
 
 public/sw.js
 public/swe-worker-*.js

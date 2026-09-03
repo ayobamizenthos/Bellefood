@@ -3,15 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { Link } from '@/lib/router'
-import {
-  Heart,
-  Minus,
-  Plus,
-  SlidersHorizontal,
-  Share2,
-  UtensilsCrossed,
-  ShoppingBasket,
-} from 'lucide-react'
+import { Heart, Minus, Plus, Share2, UtensilsCrossed, ShoppingBasket } from 'lucide-react'
 import { useShareProduct } from '@/hooks/useShareProduct'
 import type { Product } from '@/lib/types'
 import { cartItemKey } from '@/lib/types'
@@ -31,7 +23,6 @@ export function ProductCard({ product }: { product: Product }) {
   const [imageLoaded, setImageLoaded] = useState(false)
 
   const level = stockLevel(product)
-  const isCable = product.cable_pricing != null
   const soldOut = level === 'out_of_stock'
   const saved = has(product.id)
 
@@ -124,18 +115,10 @@ export function ProductCard({ product }: { product: Product }) {
 
         <span className="mt-1 text-lg font-bold text-brand">
           {formatNaira(product.price)}
-          {isCable ? <span className="text-body font-medium text-ink-muted">/yd</span> : null}
         </span>
 
         <div className="mt-1.5">
-          {isCable ? (
-            <Link
-              to={`/product/${product.slug}`}
-              className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-brand text-body font-semibold text-white transition-transform active:scale-95"
-            >
-              <SlidersHorizontal size={16} /> Configure
-            </Link>
-          ) : soldOut ? (
+          {soldOut ? (
             <button
               type="button"
               disabled

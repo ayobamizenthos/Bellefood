@@ -55,9 +55,6 @@ export function HeroCarousel({ products }: { products: Product[] }) {
           </h2>
           <p className="text-2xl font-bold text-white sm:text-3xl">
             {formatNaira(current.price)}
-            {current.cable_pricing ? (
-              <span className="text-body font-medium opacity-80"> / yard</span>
-            ) : null}
           </p>
           <Link
             to={`/product/${current.slug}`}

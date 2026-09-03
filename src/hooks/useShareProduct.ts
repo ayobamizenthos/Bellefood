@@ -10,10 +10,7 @@ export function useShareProduct() {
 
   return async (product: Product) => {
     const url = `${SITE.url}/product/${product.slug}`
-    const priceLabel = product.cable_pricing
-      ? `${formatNaira(product.price)} / yard`
-      : formatNaira(product.price)
-    const text = `${product.name} · ${priceLabel}`
+    const text = `${product.name} · ${formatNaira(product.price)}`
 
     if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
       try {
