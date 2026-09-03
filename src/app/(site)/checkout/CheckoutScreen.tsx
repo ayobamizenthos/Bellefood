@@ -55,6 +55,7 @@ export default function CheckoutPage() {
   const [copied, setCopied] = useState(false)
   const [payError, setPayError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const orderPlaced = useRef(false)
 
   useEffect(() => {
     if (profile?.full_name) setFullName(profile.full_name)
@@ -65,11 +66,14 @@ export default function CheckoutPage() {
     if (!zoneId && zones.length > 0) setZoneId(zones[0].id)
   }, [zones, zoneId])
 
+  useEffect(() => {
+    if (!loading && items.length === 0 && !orderPlaced.current) {
+      navigate('/cart', { replace: true })
+    }
+  }, [loading, items.length, navigate])
+
   if (loading) return <PageSpinner />
-  if (items.length === 0) {
-    navigate('/cart', { replace: true })
-    return null
-  }
+  if (items.length === 0) return null
 
   const selectedZone = zones.find(zone => zone.id === zoneId)
   const deliveryFee = fulfillment === 'pickup' ? 0 : Number(selectedZone?.fee ?? 0)
@@ -138,8 +142,9 @@ export default function CheckoutPage() {
 
     if (method === 'bank_transfer') {
       setPlacing(false)
-      clear()
+      orderPlaced.current = true
       navigate(`/orders/${data.id}?placed=1`, { replace: true })
+      clear()
       return
     }
 
@@ -162,11 +167,12 @@ export default function CheckoutPage() {
       })
 
       setPlacing(false)
-      clear()
+      orderPlaced.current = true
       if (!verified?.ok) {
         setPayError('Payment received but not yet confirmed. We will verify it shortly.')
       }
       navigate(`/orders/${data.id}?placed=1`, { replace: true })
+      clear()
     } catch {
       setPlacing(false)
       setPayError('Payment could not start. Please try again or use bank transfer.')
