@@ -1,0 +1,7 @@
+project_id = "xxbecnvdtvbopmuuxswf"
+
+[functions.send-push]
+verify_jwt = false
+
+[functions.paystack-verify]
+verify_jwt = true

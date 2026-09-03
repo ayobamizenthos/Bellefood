@@ -1,0 +1,28 @@
+node_modules
+dist
+dist-ssr
+*.local
+.env
+.env.local
+.env.*.local
+.DS_Store
+.vercel
+*.log
+npm-debug.log*
+
+# Secrets (never commit)
+.mcp.json
+
+# Supabase CLI local state
+supabase/.temp
+supabase/.branches
+
+# Internal planning docs (not part of the shipped product)
+Zenthos_Energies_PRD_PRODUCTION.md
+
+.next
+next-env.d.ts
+
+public/sw.js
+public/swe-worker-*.js
+.claude
