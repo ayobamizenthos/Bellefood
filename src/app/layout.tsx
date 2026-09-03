@@ -14,7 +14,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   title: {
-    default: 'Solar Inverters, Batteries & Panels in Lagos | Belle Food',
+    default: 'Belle Food | Restaurant & Supermarket in Lagos, Open 24/7',
     template: `%s | ${SITE.name}`,
   },
   description: SITE.tagline,
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     siteName: SITE.name,
     locale: 'en_NG',
     url: SITE.url,
-    title: 'Solar Inverters, Batteries & Panels in Lagos | Belle Food',
+    title: 'Belle Food | Restaurant & Supermarket in Lagos, Open 24/7',
     description: SITE.tagline,
   },
   twitter: { card: 'summary_large_image' },
