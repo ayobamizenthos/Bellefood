@@ -7,6 +7,8 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
@@ -185,8 +187,6 @@ export type Database = {
           delivery_method: string
           estimated_delivery: string | null
           id: string
-          installation_fee: number
-          installation_requested: boolean
           items: Json
           order_number: string
           payment_method: string
@@ -208,8 +208,6 @@ export type Database = {
           delivery_method?: string
           estimated_delivery?: string | null
           id?: string
-          installation_fee?: number
-          installation_requested?: boolean
           items: Json
           order_number?: string
           payment_method?: string
@@ -231,8 +229,6 @@ export type Database = {
           delivery_method?: string
           estimated_delivery?: string | null
           id?: string
-          installation_fee?: number
-          installation_requested?: boolean
           items?: Json
           order_number?: string
           payment_method?: string
@@ -258,7 +254,6 @@ export type Database = {
       products: {
         Row: {
           brand: string | null
-          cable_pricing: Json | null
           capacity_kwh: number | null
           category: string
           cost: number | null
@@ -286,7 +281,6 @@ export type Database = {
         }
         Insert: {
           brand?: string | null
-          cable_pricing?: Json | null
           capacity_kwh?: number | null
           category: string
           cost?: number | null
@@ -314,7 +308,6 @@ export type Database = {
         }
         Update: {
           brand?: string | null
-          cable_pricing?: Json | null
           capacity_kwh?: number | null
           category?: string
           cost?: number | null
@@ -418,11 +411,8 @@ export type Database = {
           bank_account_name: string | null
           bank_account_number: string | null
           bank_name: string | null
-          express_delivery_fee: number
           free_delivery_threshold: number
           id: boolean
-          installation_fee: number
-          standard_delivery_fee: number
           support_email: string | null
           updated_at: string
           whatsapp_number: string | null
@@ -431,11 +421,8 @@ export type Database = {
           bank_account_name?: string | null
           bank_account_number?: string | null
           bank_name?: string | null
-          express_delivery_fee?: number
           free_delivery_threshold?: number
           id?: boolean
-          installation_fee?: number
-          standard_delivery_fee?: number
           support_email?: string | null
           updated_at?: string
           whatsapp_number?: string | null
@@ -444,11 +431,8 @@ export type Database = {
           bank_account_name?: string | null
           bank_account_number?: string | null
           bank_name?: string | null
-          express_delivery_fee?: number
           free_delivery_threshold?: number
           id?: boolean
-          installation_fee?: number
-          standard_delivery_fee?: number
           support_email?: string | null
           updated_at?: string
           whatsapp_number?: string | null
@@ -542,7 +526,6 @@ export type Database = {
         | "out_for_delivery"
         | "delivered"
         | "completed"
-        | "installation"
         | "new_order"
       order_status:
         | "pending"
@@ -684,7 +667,6 @@ export const Constants = {
         "out_for_delivery",
         "delivered",
         "completed",
-        "installation",
         "new_order",
       ],
       order_status: [

@@ -76,7 +76,7 @@ create table wishlists (
 
 create table orders (
   id uuid primary key default gen_random_uuid(),
-  order_number text unique not null default 'ZEN-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8)),
+  order_number text unique not null default 'BF-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8)),
   user_id uuid not null references profiles(id) on delete restrict,
   items jsonb not null,
   subtotal numeric(14, 2) not null,

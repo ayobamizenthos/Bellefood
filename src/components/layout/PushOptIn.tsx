@@ -1,13 +1,30 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Bell, X } from 'lucide-react'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { useAuth } from '@/stores/auth'
 import { Button } from '@/components/ui/Button'
 
+const DISMISS_KEY = 'bellefood-push-optin-dismissed'
+
 export function PushOptIn() {
   const { session } = useAuth()
   const { supported, state, busy, subscribe } = usePushNotifications()
-  const [snoozed, setSnoozed] = useState(false)
+  const [snoozed, setSnoozed] = useState(true)
+
+  useEffect(() => {
+    try {
+      setSnoozed(localStorage.getItem(DISMISS_KEY) === '1')
+    } catch {
+      setSnoozed(false)
+    }
+  }, [])
+
+  const dismiss = () => {
+    try {
+      localStorage.setItem(DISMISS_KEY, '1')
+    } catch {}
+    setSnoozed(true)
+  }
 
   if (!session || !supported || state === 'granted' || snoozed) return null
 
@@ -17,7 +34,7 @@ export function PushOptIn() {
     <div className="fixed inset-x-3 bottom-24 z-50 mx-auto max-w-app animate-slide-up rounded-2xl border border-brand/30 bg-white p-4 shadow-pop md:bottom-6">
       <button
         type="button"
-        onClick={() => setSnoozed(true)}
+        onClick={dismiss}
         aria-label="Dismiss"
         className="absolute right-3 top-3 text-ink-muted"
       >
@@ -45,7 +62,7 @@ export function PushOptIn() {
               <Button size="sm" loading={busy} onClick={subscribe}>
                 Enable notifications
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => setSnoozed(true)}>
+              <Button size="sm" variant="ghost" onClick={dismiss}>
                 Later
               </Button>
             </div>
