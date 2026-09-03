@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { Link } from '@/lib/router'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, ShoppingBasket, UtensilsCrossed } from 'lucide-react'
 import type { Product } from '@/lib/types'
 import { formatNaira } from '@/lib/format'
 import { cn } from '@/lib/cn'
@@ -78,7 +78,15 @@ export function HeroCarousel({ products }: { products: Product[] }) {
               priority
               className="animate-fade-in object-contain p-2"
             />
-          ) : null}
+          ) : (
+            <div className="grid h-full w-full place-items-center text-brand/30">
+              {current.store === 'supermarket' ? (
+                <ShoppingBasket size={64} strokeWidth={1.5} />
+              ) : (
+                <UtensilsCrossed size={64} strokeWidth={1.5} />
+              )}
+            </div>
+          )}
         </div>
       </div>
 
