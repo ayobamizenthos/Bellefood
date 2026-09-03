@@ -25,7 +25,6 @@ import { STORE } from '@/lib/constants'
 import { cn } from '@/lib/cn'
 import { Button } from '@/components/ui/Button'
 import { PageSpinner } from '@/components/ui/PageSpinner'
-import { playOrderPlaced } from '@/lib/sounds'
 import { payWithPaystack } from '@/lib/paystack'
 
 type Step = 1 | 2
@@ -139,7 +138,6 @@ export default function CheckoutPage() {
 
     if (method === 'bank_transfer') {
       setPlacing(false)
-      playOrderPlaced()
       clear()
       navigate(`/orders/${data.id}?placed=1`, { replace: true })
       return
@@ -164,7 +162,6 @@ export default function CheckoutPage() {
       })
 
       setPlacing(false)
-      playOrderPlaced()
       clear()
       if (!verified?.ok) {
         setPayError('Payment received but not yet confirmed. We will verify it shortly.')

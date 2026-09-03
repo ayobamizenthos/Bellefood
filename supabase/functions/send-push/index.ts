@@ -3,7 +3,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const VAPID_PUBLIC = Deno.env.get('VAPID_PUBLIC_KEY')!
 const VAPID_PRIVATE = Deno.env.get('VAPID_PRIVATE_KEY')!
-const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') ?? 'mailto:support@zenthosenergies.com'
+const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') ?? 'mailto:hello@bellefood.ng'
 
 webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE)
 

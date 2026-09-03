@@ -20,7 +20,7 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number]
 
 export const ORDER_STATUS_META: Record<OrderStatus, { label: string; description: string }> = {
   pending: { label: 'Pending', description: 'Awaiting confirmation' },
-  processing: { label: 'Preparing', description: 'Your order is being prepared' },
+  processing: { label: 'Processing', description: 'Your order is being processed' },
   out_for_delivery: { label: 'On the Way', description: 'Out for delivery or ready for pickup' },
   delivered: { label: 'Delivered', description: 'Delivered or picked up' },
   completed: { label: 'Completed', description: 'Order fully finished' },

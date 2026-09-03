@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { Link, useParams, useSearchParams } from '@/lib/router'
-import { CheckCircle2, MessageCircle } from 'lucide-react'
+import { MessageCircle } from 'lucide-react'
+import { OrderPlacedCelebration } from '@/components/order/OrderPlacedCelebration'
 import { useOrder } from '@/hooks/useOrders'
 import { useSupportSheet } from '@/stores/support'
 import { formatNaira } from '@/lib/format'
@@ -15,10 +16,11 @@ import { cartItemTotal } from '@/lib/types'
 export default function OrderTrackingPage() {
   const { orderId } = useParams()
   const [params] = useSearchParams()
-  const justPlaced = params.get('placed') === '1'
   const { order, log, loading, confirmReceipt } = useOrder(orderId)
   const showSupport = useSupportSheet(s => s.show)
   const [confirming, setConfirming] = useState(false)
+  const [celebrated, setCelebrated] = useState(false)
+  const justPlaced = params.get('placed') === '1' && !celebrated
 
   if (loading) return <PageSpinner />
   if (!order) return <p className="py-16 text-center">Order not found.</p>
@@ -44,13 +46,11 @@ export default function OrderTrackingPage() {
   return (
     <div className="mx-auto flex max-w-app flex-col gap-5">
       {justPlaced && (
-        <div className="flex items-start gap-3 rounded-2xl bg-success/10 p-4 text-success">
-          <CheckCircle2 size={22} className="mt-0.5 shrink-0" />
-          <div>
-            <p className="font-semibold">Order placed successfully</p>
-            <p className="text-body">We&apos;ll notify you once your payment is confirmed.</p>
-          </div>
-        </div>
+        <OrderPlacedCelebration
+          orderNumber={order.order_number}
+          isPickup={isPickup}
+          onDismiss={() => setCelebrated(true)}
+        />
       )}
 
       <div>

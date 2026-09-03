@@ -54,10 +54,27 @@ const config = {
           from: { opacity: '0', transform: 'translateY(8px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
+        'pop-in': {
+          '0%': { opacity: '0', transform: 'scale(0.7)' },
+          '60%': { opacity: '1', transform: 'scale(1.06)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        'check-pop': {
+          '0%': { transform: 'scale(0)' },
+          '70%': { transform: 'scale(1.18)' },
+          '100%': { transform: 'scale(1)' },
+        },
+        'ring-out': {
+          '0%': { opacity: '0.5', transform: 'scale(0.8)' },
+          '100%': { opacity: '0', transform: 'scale(1.9)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 250ms ease-out',
         'slide-up': 'slide-up 250ms ease-out',
+        'pop-in': 'pop-in 420ms cubic-bezier(0.16, 1, 0.3, 1)',
+        'check-pop': 'check-pop 520ms 130ms cubic-bezier(0.16, 1, 0.3, 1) both',
+        'ring-out': 'ring-out 900ms 200ms ease-out both',
       },
     },
   },

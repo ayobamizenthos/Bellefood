@@ -254,7 +254,6 @@ export type Database = {
       products: {
         Row: {
           brand: string | null
-          capacity_kwh: number | null
           category: string
           cost: number | null
           created_at: string
@@ -267,21 +266,17 @@ export type Database = {
           is_published: boolean
           low_stock_threshold: number
           name: string
-          power_kva: number | null
           price: number
           rating: number
           sku: string | null
           slug: string
           sort_priority: number
-          specs: Json
           stock: number
           store: string
           updated_at: string
-          wattage: number | null
         }
         Insert: {
           brand?: string | null
-          capacity_kwh?: number | null
           category: string
           cost?: number | null
           created_at?: string
@@ -294,21 +289,17 @@ export type Database = {
           is_published?: boolean
           low_stock_threshold?: number
           name: string
-          power_kva?: number | null
           price: number
           rating?: number
           sku?: string | null
           slug: string
           sort_priority?: number
-          specs?: Json
           stock?: number
           store?: string
           updated_at?: string
-          wattage?: number | null
         }
         Update: {
           brand?: string | null
-          capacity_kwh?: number | null
           category?: string
           cost?: number | null
           created_at?: string
@@ -321,17 +312,14 @@ export type Database = {
           is_published?: boolean
           low_stock_threshold?: number
           name?: string
-          power_kva?: number | null
           price?: number
           rating?: number
           sku?: string | null
           slug?: string
           sort_priority?: number
-          specs?: Json
           stock?: number
           store?: string
           updated_at?: string
-          wattage?: number | null
         }
         Relationships: []
       }

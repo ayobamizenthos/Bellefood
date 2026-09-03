@@ -109,7 +109,6 @@ export default function AdminProductEdit() {
       low_stock_threshold: Number(lowStock),
       description: description || null,
       images: images.filter(url => url.trim()),
-      specs: {},
       featured,
       in_stock: inStock,
     }
