@@ -94,7 +94,7 @@ export function InstallPrompt() {
           </p>
         ) : (
           <p className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink">
-            Install the Belle Food app
+            Install the BelleFOOD app
           </p>
         )}
 

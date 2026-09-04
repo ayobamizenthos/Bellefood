@@ -19,20 +19,15 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-white/90 backdrop-blur">
       <div className="app-shell flex h-14 items-center justify-between gap-6">
-        <Link to="/" className="flex shrink-0 items-center gap-2">
+        <Link to="/" className="flex shrink-0 items-center" aria-label="BelleFOOD home">
           <Image
-            src="/bellefood-mark.png"
-            alt="Belle Food"
-            width={36}
-            height={36}
-            className="h-9 w-9 shrink-0 object-contain"
+            src="/bellefood-wordmark.png"
+            alt="BelleFOOD"
+            width={1024}
+            height={168}
+            priority
+            className="h-7 w-auto"
           />
-          <span className="flex flex-col leading-none">
-            <span className="text-base font-bold tracking-tight text-brand">Belle Food</span>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-muted">
-              Kitchen &amp; Mart
-            </span>
-          </span>
         </Link>
 
         <nav className="ml-auto hidden items-center gap-1 md:flex">

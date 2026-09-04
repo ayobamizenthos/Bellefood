@@ -47,7 +47,7 @@ export function AdminChrome({ children }: { children: ReactNode }) {
             height={36}
             className="h-9 w-9 shrink-0 object-contain"
           />
-          <span className="font-bold">Belle Food Admin</span>
+          <span className="font-bold">BelleFOOD Admin</span>
         </div>
         <nav className="flex flex-1 flex-col gap-1 p-3">
           {links.map(({ to, label, icon: Icon, end }) => (

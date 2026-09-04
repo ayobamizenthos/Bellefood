@@ -15,15 +15,15 @@ export function AuthShell({
     <div className="flex min-h-dvh flex-col bg-white">
       <div className="app-shell flex flex-1 flex-col justify-center py-10">
         <div className="mx-auto w-full max-w-app">
-          <Link to="/" className="mb-8 flex items-center justify-center gap-2">
+          <Link to="/" className="mb-8 flex items-center justify-center" aria-label="BelleFOOD home">
             <Image
-              src="/bellefood-mark.png"
-              alt="Belle Food"
-              width={44}
-              height={44}
-              className="h-11 w-11 object-contain"
+              src="/bellefood-text.png"
+              alt="BelleFOOD, the taste is delicious"
+              width={1024}
+              height={238}
+              priority
+              className="h-16 w-auto"
             />
-            <span className="text-xl font-bold tracking-tight">Belle Food</span>
           </Link>
 
           <h1 className="text-2xl font-bold">{title}</h1>

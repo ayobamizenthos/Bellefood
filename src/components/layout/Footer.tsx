@@ -40,9 +40,9 @@ export function Footer() {
                 className="h-11 w-11 object-contain"
               />
               <span className="flex flex-col leading-none">
-                <span className="text-lg font-bold tracking-tight">Belle Food</span>
+                <span className="text-lg font-bold tracking-tight">BelleFOOD</span>
                 <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-white/70">
-                  Kitchen &amp; Mart
+                  The taste is delicious
                 </span>
               </span>
             </div>
@@ -109,7 +109,7 @@ export function Footer() {
           aria-hidden
           className="pointer-events-none absolute -bottom-6 left-0 w-full select-none whitespace-nowrap text-center text-[6.5rem] font-bold leading-none tracking-tight text-white/[0.05] lg:text-[8.5rem]"
         >
-          BELLE FOOD
+          BelleFOOD
         </span>
       </div>
     </footer>
