@@ -22,13 +22,24 @@ export default function LoginPage() {
     event.preventDefault()
     setError('')
     setLoading(true)
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-    setLoading(false)
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
     if (signInError) {
+      setLoading(false)
       setError(signInError.message)
       return
     }
-    navigate(from, { replace: true })
+
+    let destination = from
+    if (from === '/' && data.user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', data.user.id)
+        .single()
+      if (profile?.is_admin) destination = '/admin'
+    }
+    setLoading(false)
+    navigate(destination, { replace: true })
   }
 
   return (
