@@ -73,7 +73,7 @@ export function HeroCarousel({ products }: { products: Product[] }) {
               fill
               sizes="192px"
               priority
-              className="animate-fade-in object-contain p-2"
+              className="animate-fade-in object-cover"
             />
           ) : (
             <div className="grid h-full w-full place-items-center text-brand/30">

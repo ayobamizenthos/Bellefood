@@ -3,8 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { Link } from '@/lib/router'
-import { Heart, Minus, Plus, Share2, UtensilsCrossed, ShoppingBasket } from 'lucide-react'
-import { useShareProduct } from '@/hooks/useShareProduct'
+import { Heart, Minus, Plus, UtensilsCrossed, ShoppingBasket } from 'lucide-react'
 import type { Product } from '@/lib/types'
 import { cartItemKey } from '@/lib/types'
 import { formatNaira } from '@/lib/format'
@@ -19,7 +18,6 @@ export function ProductCard({ product }: { product: Product }) {
   const addItem = useCart(s => s.addItem)
   const setQuantity = useCart(s => s.setQuantity)
   const { has, toggle } = useWishlist()
-  const share = useShareProduct()
   const [imageLoaded, setImageLoaded] = useState(false)
 
   const level = stockLevel(product)
@@ -58,15 +56,6 @@ export function ProductCard({ product }: { product: Product }) {
           )}
         />
       </button>
-      <button
-        type="button"
-        onClick={() => share(product)}
-        aria-label="Share this product"
-        className="absolute right-10 top-0 z-10 grid h-11 w-11 place-items-center transition-transform active:scale-90"
-      >
-        <Share2 size={17} className="text-brand drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)]" />
-      </button>
-
       <Link to={`/product/${product.slug}`} className="block">
         <div
           className={cn(
@@ -87,7 +76,7 @@ export function ProductCard({ product }: { product: Product }) {
               onLoad={() => setImageLoaded(true)}
               onError={() => setImageLoaded(true)}
               className={cn(
-                'object-contain p-2 transition-all duration-300 group-hover:scale-105',
+                'object-cover transition-all duration-300 group-hover:scale-105',
                 imageLoaded ? 'opacity-100' : 'opacity-0'
               )}
             />

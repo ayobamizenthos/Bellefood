@@ -68,6 +68,14 @@ const config = {
           '0%': { opacity: '0.5', transform: 'scale(0.8)' },
           '100%': { opacity: '0', transform: 'scale(1.9)' },
         },
+        'logo-pulse': {
+          '0%, 100%': { transform: 'scale(1)' },
+          '50%': { transform: 'scale(1.1)' },
+        },
+        'progress-slide': {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(400%)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 250ms ease-out',
@@ -75,6 +83,8 @@ const config = {
         'pop-in': 'pop-in 420ms cubic-bezier(0.16, 1, 0.3, 1)',
         'check-pop': 'check-pop 520ms 130ms cubic-bezier(0.16, 1, 0.3, 1) both',
         'ring-out': 'ring-out 900ms 200ms ease-out both',
+        'logo-pulse': 'logo-pulse 1.1s ease-in-out infinite',
+        'progress-slide': 'progress-slide 1s ease-in-out infinite',
       },
     },
   },
