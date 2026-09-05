@@ -1,0 +1,794 @@
+[
+ {
+  "category": "beverages",
+  "title": "Tesco Gnocchi 500 g",
+  "price": 17700,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc5785.jpg?v=1760762079"
+ },
+ {
+  "category": "beverages",
+  "title": "Baxters Kimchi 300 g",
+  "price": 18430,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc343.jpg?v=1760730764"
+ },
+ {
+  "category": "beverages",
+  "title": "Sprite Pet Bottle 35 cl",
+  "price": 330,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spar2140x.jpg?v=1778141758"
+ },
+ {
+  "category": "beverages",
+  "title": "Tesco Lime Juice 250 ml",
+  "price": 11140,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc5901.jpg?v=1760762711"
+ },
+ {
+  "category": "beverages",
+  "title": "Tesco Lemon Juice 500 ml",
+  "price": 16025,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc5886.jpg?v=1760762629"
+ },
+ {
+  "category": "beverages",
+  "title": "Tesco Malt Vinegar 568 ml",
+  "price": 14270,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc5929.jpg?v=1760762865"
+ },
+ {
+  "category": "beverages",
+  "title": "Kabisa Energy Drink 25 cl",
+  "price": 1340,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl1468_ae7dbeea-a232-4bcf-97c3-fcb0673276e7.jpg?v=1756131021"
+ },
+ {
+  "category": "beverages",
+  "title": "Amber Energy Drink 250 ml",
+  "price": 1060,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl1463_3edceab0-49d8-4947-a1bb-c283fcda0004.jpg?v=1756131573"
+ },
+ {
+  "category": "beverages",
+  "title": "Yutaka Korean Kimchi 200 g",
+  "price": 16695,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc7154.jpg?v=1760769540"
+ },
+ {
+  "category": "beverages",
+  "title": "Carabao Energy Drink 33 cl",
+  "price": 1385,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl1466_a0e4ddcb-588e-45b9-9a79-4c749a25bd0a.jpg?v=1756131406"
+ },
+ {
+  "category": "beverages",
+  "title": "Tesco Prunes In Juice 410 g",
+  "price": 13770,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc1584.jpg?v=1760738107"
+ },
+ {
+  "category": "beverages",
+  "title": "Rockstar Energy Drink 33 cl",
+  "price": 450,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl1476_d0b8d9a2-cc60-4204-bf69-6e5f439f2c1c.jpg?v=1756130603"
+ },
+ {
+  "category": "provisions",
+  "title": "Kit Kat Cereal 330 g",
+  "price": 18950,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc2830.jpg?v=1760745478"
+ },
+ {
+  "category": "provisions",
+  "title": "Milo 3 in 1 30 g x10",
+  "price": 3600,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxtyabc813_b1f57e58-aacf-433e-aa99-3cb4783b2175.jpg?v=1726094573"
+ },
+ {
+  "category": "provisions",
+  "title": "Tesco Corn Flakes 500 g",
+  "price": 14770,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc5430.jpg?v=1760760097"
+ },
+ {
+  "category": "provisions",
+  "title": "Weetabix Cereal 12 Pack",
+  "price": 13755,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc6993.jpg?v=1760768690"
+ },
+ {
+  "category": "provisions",
+  "title": "Weetabix Cereal 24 Pack",
+  "price": 23625,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc6994.jpg?v=1760768695"
+ },
+ {
+  "category": "provisions",
+  "title": "Weetabix Cereal 72 Pack",
+  "price": 47585,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc6995.jpg?v=1760768700"
+ },
+ {
+  "category": "provisions",
+  "title": "Nasco Corn Flakes 900 g",
+  "price": 5750,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl3196_5bd42d37-4166-4bea-b263-bc5cb1a220b1.jpg?v=1756132566"
+ },
+ {
+  "category": "provisions",
+  "title": "Tesco Organic Oats 750 g",
+  "price": 23010,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc6048.jpg?v=1760763515"
+ },
+ {
+  "category": "provisions",
+  "title": "Kellogg's Coco Pops 45 g",
+  "price": 345,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl1636_23792e7c-07e5-49f8-a835-b3a57e5fc060.jpg?v=1756131014"
+ },
+ {
+  "category": "provisions",
+  "title": "Bournvita Sachet 20 g x10",
+  "price": 2250,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/CITD985x.jpg?v=1770055939"
+ },
+ {
+  "category": "provisions",
+  "title": "Kellogg's Corn Flakes 45 g",
+  "price": 315,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl1639_5e88f197-2c3e-4da9-994a-24af1341cf8a.jpg?v=1756131009"
+ },
+ {
+  "category": "provisions",
+  "title": "Kellogg's Corn Flakes 250 g",
+  "price": 13375,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc2664.jpg?v=1760744507"
+ },
+ {
+  "category": "cooking",
+  "title": "Saxa Salt 750 g",
+  "price": 21750,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc4688.jpg?v=1760755988"
+ },
+ {
+  "category": "cooking",
+  "title": "Maggi Arome 200 ml",
+  "price": 5650,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmt071x.jpg?v=1757329270"
+ },
+ {
+  "category": "cooking",
+  "title": "Schwartz Thyme 11 g",
+  "price": 9235,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc4763.jpg?v=1760756400"
+ },
+ {
+  "category": "cooking",
+  "title": "Knorr Cubes 8 g x20",
+  "price": 1075,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl1849_0c2deccd-f595-49b2-94d8-55c5e8965475.jpg?v=1756130985"
+ },
+ {
+  "category": "cooking",
+  "title": "Maldon Sea Salt 250 g",
+  "price": 15745,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc3352.jpg?v=1760748620"
+ },
+ {
+  "category": "cooking",
+  "title": "Tesco Onion Salt 80 g",
+  "price": 7915,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc6033.jpg?v=1760763433"
+ },
+ {
+  "category": "cooking",
+  "title": "Tesco Garlic Salt 90 g",
+  "price": 8090,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc5776.jpg?v=1760762030"
+ },
+ {
+  "category": "cooking",
+  "title": "Tesco Mixed Spice 37 g",
+  "price": 7170,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc5993.jpg?v=1760763217"
+ },
+ {
+  "category": "cooking",
+  "title": "Cornish Sea Salt 225 g",
+  "price": 13640,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc990.jpg?v=1760734626"
+ },
+ {
+  "category": "cooking",
+  "title": "Tesco Vegetable Oil 5 L",
+  "price": 110990,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc6377.jpg?v=1760765332"
+ },
+ {
+  "category": "cooking",
+  "title": "Kucharek Seasoning 200 g",
+  "price": 9435,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc2898.jpg?v=1760745894"
+ },
+ {
+  "category": "cooking",
+  "title": "Love Corn Sea Salt 115 g",
+  "price": 11595,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc3252.jpg?v=1760748020"
+ },
+ {
+  "category": "dairy-eggs",
+  "title": "Eggcellent Eggs x15",
+  "price": 4350,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spdppr2774x.jpg?v=1786533284"
+ },
+ {
+  "category": "dairy-eggs",
+  "title": "Eggcellent Eggs x30",
+  "price": 8250,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmex102x.jpg?v=1786532008"
+ },
+ {
+  "category": "dairy-eggs",
+  "title": "Yopokki Cheese 120 g",
+  "price": 11120,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc7136.jpg?v=1760769444"
+ },
+ {
+  "category": "dairy-eggs",
+  "title": "Tito Fura Yogurt 1 L",
+  "price": 4060,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl1549_c81835f2-4a45-4fa2-8238-75c42cee5cd4.jpg?v=1756130345"
+ },
+ {
+  "category": "dairy-eggs",
+  "title": "Olive Yoghurt Tub 1 L",
+  "price": 5070,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl3367_4be9f4dc-a6d8-4352-9b94-8606de5ff76b.jpg?v=1756132450"
+ },
+ {
+  "category": "dairy-eggs",
+  "title": "Garden Egg - Green 2 L",
+  "price": 4300,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/MILE120x.jpg?v=1760616397"
+ },
+ {
+  "category": "dairy-eggs",
+  "title": "Tito Fura Yogurt 50 cl",
+  "price": 2470,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl1550_d5215ad5-b4db-4759-a37f-3f9c8b451929.jpg?v=1756130344"
+ },
+ {
+  "category": "dairy-eggs",
+  "title": "Lubella Egg Pasta 250 g",
+  "price": 10580,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc3272.jpg?v=1760748139"
+ },
+ {
+  "category": "dairy-eggs",
+  "title": "Tito Regular Yogurt 1 L",
+  "price": 3995,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl1551_008698d2-a7bd-4eb3-b858-534d8062acdb.jpg?v=1756130343"
+ },
+ {
+  "category": "dairy-eggs",
+  "title": "Tesco Cheese Puffs 150 g",
+  "price": 9130,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc5365.jpg?v=1760759733"
+ },
+ {
+  "category": "dairy-eggs",
+  "title": "Tesco Cheese Thins 150 g",
+  "price": 9685,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc5368.jpg?v=1760759750"
+ },
+ {
+  "category": "dairy-eggs",
+  "title": "Hajdu Grill Cheese 250 g",
+  "price": 8500,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl3329_7967ee1c-ff0c-4402-be4c-c2029af72ba0.jpg?v=1756132482"
+ },
+ {
+  "category": "foodstuff",
+  "title": "Laila Basmati Rice 5 kg",
+  "price": 122160,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc3061.jpg?v=1760746883"
+ },
+ {
+  "category": "foodstuff",
+  "title": "Tesco Basmati Rice 1 kg",
+  "price": 25775,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc5303.jpg?v=1760759390"
+ },
+ {
+  "category": "foodstuff",
+  "title": "Tesco Basmati Rice 2 kg",
+  "price": 48145,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc5304.jpg?v=1760759396"
+ },
+ {
+  "category": "foodstuff",
+  "title": "Tesco Jasmine Rice 1 kg",
+  "price": 29710,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc5859.jpg?v=1760762487"
+ },
+ {
+  "category": "foodstuff",
+  "title": "Salaam Basmati Rice 5 kg",
+  "price": 120765,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc4665.jpg?v=1760755873"
+ },
+ {
+  "category": "foodstuff",
+  "title": "De Cecco Spaghetti 500 g",
+  "price": 17700,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc1145.jpg?v=1760735556"
+ },
+ {
+  "category": "foodstuff",
+  "title": "Pure Prima Semolina 10 kg",
+  "price": 17480,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spcgfl1177x.jpg?v=1763389811"
+ },
+ {
+  "category": "foodstuff",
+  "title": "Tesco Macaroni Pasta 1 kg",
+  "price": 24405,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc5920.jpg?v=1760762816"
+ },
+ {
+  "category": "foodstuff",
+  "title": "Rosicke Pasta Penne 500 g",
+  "price": 3430,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spasho9y.jpg?v=1757360846"
+ },
+ {
+  "category": "foodstuff",
+  "title": "Napolina Penne Pasta 500 g",
+  "price": 16305,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc3711.jpg?v=1760750717"
+ },
+ {
+  "category": "foodstuff",
+  "title": "Tesco Macaroni Pasta 500 g",
+  "price": 14125,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc5921.jpg?v=1760762822"
+ },
+ {
+  "category": "foodstuff",
+  "title": "Ola Light Poundo Rice 1 kg",
+  "price": 3370,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl3315_61105fbb-06bf-472a-8d40-ef6330aea07d.jpg?v=1756132500"
+ },
+ {
+  "category": "frozen",
+  "title": "Beef 500 g - Cut Up",
+  "price": 4000,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/1506585956674_omwpxyz41_beef__1_kg_-_cut_up__market.jpg?v=1689075915"
+ },
+ {
+  "category": "frozen",
+  "title": "Chicken Breast ~1 kg",
+  "price": 9750,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/sprnw15739.jpg?v=1786371288"
+ },
+ {
+  "category": "frozen",
+  "title": "Chicken Breast ~10 kg",
+  "price": 90900,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/sprnw15739.jpg?v=1786371288"
+ },
+ {
+  "category": "frozen",
+  "title": "Ship Corned Beef 340 g",
+  "price": 19680,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc4852.jpg?v=1760756891"
+ },
+ {
+  "category": "frozen",
+  "title": "Perdix Corned Beef 340 g",
+  "price": 4990,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl3226_89ef03b9-1c86-4d1a-9539-3f250562725d.jpg?v=1756132542"
+ },
+ {
+  "category": "frozen",
+  "title": "Princes Corned Beef 130 g",
+  "price": 11855,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc4390.jpg?v=1760754390"
+ },
+ {
+  "category": "frozen",
+  "title": "Princes Corned Beef 200 g",
+  "price": 15860,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc4391.jpg?v=1760754396"
+ },
+ {
+  "category": "frozen",
+  "title": "Tesco Beef Bolognese 392 g",
+  "price": 16110,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc5313.jpg?v=1760759445"
+ },
+ {
+  "category": "frozen",
+  "title": "Kings Wagyu Beef Jerky 45 g",
+  "price": 12615,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc2814.jpg?v=1760745383"
+ },
+ {
+  "category": "frozen",
+  "title": "Heinz Beef Broth Soup 400 g",
+  "price": 14825,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc6503.jpg?v=1760766019"
+ },
+ {
+  "category": "frozen",
+  "title": "Fiesta Chicken Breast ~1 kg",
+  "price": 8620,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl1990_dbcc5842-849e-4147-a30d-1664130147ce.jpg?v=1756131147"
+ },
+ {
+  "category": "frozen",
+  "title": "Tesco Shrimps & Bananas 80 g",
+  "price": 6940,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc6231.jpg?v=1760764532"
+ },
+ {
+  "category": "snacks",
+  "title": "Groundnut Paste",
+  "price": 1400,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/rspwxyz34z.jpg?v=1759933590"
+ },
+ {
+  "category": "snacks",
+  "title": "Candy Wheat Bread",
+  "price": 3500,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/cand002.jpg?v=1758382978"
+ },
+ {
+  "category": "snacks",
+  "title": "Candy White Bread",
+  "price": 2900,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/cand001.jpg?v=1758382723"
+ },
+ {
+  "category": "snacks",
+  "title": "Chin Chin (Cubes)",
+  "price": 650,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/LDS0015.jpg?v=1758192388"
+ },
+ {
+  "category": "snacks",
+  "title": "Chin Chin (Flakes)",
+  "price": 650,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/LDS0016.jpg?v=1758192740"
+ },
+ {
+  "category": "snacks",
+  "title": "Galaxy Ripple 30 g",
+  "price": 1985,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl3681_775f75b8-6109-4046-94b6-2ddf2fd05a20.jpg?v=1756132235"
+ },
+ {
+  "category": "snacks",
+  "title": "Candy Brioche Bread",
+  "price": 2300,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/cand003.jpg?v=1758384448"
+ },
+ {
+  "category": "snacks",
+  "title": "Galaxy Cookies 180 g",
+  "price": 13555,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc1794.jpg?v=1760739333"
+ },
+ {
+  "category": "snacks",
+  "title": "Kit Kat Vegan 41.5 g",
+  "price": 2715,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl3685_1d02a356-ba50-4974-9d61-80b4f3a431b0.jpg?v=1756132234"
+ },
+ {
+  "category": "snacks",
+  "title": "Candy Hot Dog Roll x6",
+  "price": 2300,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/cand004.jpg?v=1758384668"
+ },
+ {
+  "category": "snacks",
+  "title": "Galaxy Counters 122 g",
+  "price": 6290,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl2497_deaa2a33-f2fd-4d13-9493-67fb06e012a6.jpg?v=1756131114"
+ },
+ {
+  "category": "snacks",
+  "title": "Tesco Digestives 400 g",
+  "price": 12200,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc5467.jpg?v=1760760306"
+ },
+ {
+  "category": "toiletries",
+  "title": "Mitchum Sport Roll On 100 ml",
+  "price": 14405,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc3550.jpg?v=1760749823"
+ },
+ {
+  "category": "toiletries",
+  "title": "Vaseline Petroleum Jelly 50 ml",
+  "price": 9350,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc6835.jpg?v=1760767797"
+ },
+ {
+  "category": "toiletries",
+  "title": "Bionsen Spray Deodorant 150 ml",
+  "price": 15550,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc478.jpg?v=1760731616"
+ },
+ {
+  "category": "toiletries",
+  "title": "Fred & Flo Cotton Buds 60 Pack",
+  "price": 6445,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc1694.jpg?v=1760738731"
+ },
+ {
+  "category": "toiletries",
+  "title": "Mitchum Ice Fresh Roll On100 ml",
+  "price": 14405,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc3545.jpg?v=1760749794"
+ },
+ {
+  "category": "toiletries",
+  "title": "Vaseline Lip Therapy Cocoa 20 g",
+  "price": 7295,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc6831.jpg?v=1760767775"
+ },
+ {
+  "category": "toiletries",
+  "title": "Vaseline Original Lip Balm 10 g",
+  "price": 10615,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc6833.jpg?v=1760767786"
+ },
+ {
+  "category": "toiletries",
+  "title": "Vaseline Petroleum Jelly 100 ml",
+  "price": 12170,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc6834.jpg?v=1760767792"
+ },
+ {
+  "category": "toiletries",
+  "title": "Fred & Flo Cotton Buds 300 Pack",
+  "price": 10885,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc1693.jpg?v=1760738725"
+ },
+ {
+  "category": "toiletries",
+  "title": "Tesco Essentials Toothbrushes x2",
+  "price": 5020,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc5508.jpg?v=1760760531"
+ },
+ {
+  "category": "toiletries",
+  "title": "Rock Face Power Shower Gel 415 ml",
+  "price": 21260,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc4597.jpg?v=1760755510"
+ },
+ {
+  "category": "toiletries",
+  "title": "Euthymol Toothbrush Original Soft",
+  "price": 2870,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl2986_5dbab950-42ee-4068-af5b-08811ce14dbc.jpg?v=1756131176"
+ },
+ {
+  "category": "household",
+  "title": "Hypomer Gel 10 g",
+  "price": 11875,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spls3977_7480394d-08d7-4a85-844e-3662c83e804e.jpg?v=1712667614"
+ },
+ {
+  "category": "household",
+  "title": "Diclomol 4 Caplets",
+  "price": 840,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spls1102_7b5670b0-f393-46a2-88af-0936afb13bea.jpg?v=1712665737"
+ },
+ {
+  "category": "household",
+  "title": "Nomo Crispy Mo 15 g",
+  "price": 5810,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc3943.jpg?v=1760751951"
+ },
+ {
+  "category": "household",
+  "title": "Spontex Thick Moppets x2",
+  "price": 12035,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc5010.jpg?v=1760757781"
+ },
+ {
+  "category": "household",
+  "title": "Tesco Sponge Wipes 4 Pack",
+  "price": 10075,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc6260.jpg?v=1760764691"
+ },
+ {
+  "category": "household",
+  "title": "Tesco Sponge Cloths 4 Pack",
+  "price": 10075,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc6258.jpg?v=1760764680"
+ },
+ {
+  "category": "household",
+  "title": "Domestos Spray Bleach 700 ml",
+  "price": 21025,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc1258.jpg?v=1760736220"
+ },
+ {
+  "category": "household",
+  "title": "Crystale Dish Washer Salt 2 kg",
+  "price": 45075,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc1069.jpg?v=1760735097"
+ },
+ {
+  "category": "household",
+  "title": "Easy Platinum Thick Bleach 1 L",
+  "price": 24125,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc1424.jpg?v=1760737193"
+ },
+ {
+  "category": "household",
+  "title": "Spontex Easy Sponge Scourers x2",
+  "price": 9940,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc5001.jpg?v=1760757730"
+ },
+ {
+  "category": "household",
+  "title": "Tesco Dish Washer Cleaner 250 ml",
+  "price": 15330,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc4458.jpg?v=1760754747"
+ },
+ {
+  "category": "household",
+  "title": "Spontex Unwrapped Sponge Scourer",
+  "price": 6945,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc5013.jpg?v=1760757797"
+ },
+ {
+  "category": "haircare",
+  "title": "Elan Hair Oil 100 ml",
+  "price": 1090,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl2914_517d0bdb-1c3e-4a33-ae74-1235d8b1425d.jpg?v=1756131219"
+ },
+ {
+  "category": "haircare",
+  "title": "KTC Castor Oil 250 ml",
+  "price": 6880,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl2352_3731f600-63f5-42ff-b661-489b51e0ab44.jpg?v=1756130980"
+ },
+ {
+  "category": "haircare",
+  "title": "Nizoral Shampoo 60 ml",
+  "price": 30000,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spls1733_89a12110-1633-4da2-aea6-bd98f37f70f4.jpg?v=1712668011"
+ },
+ {
+  "category": "haircare",
+  "title": "Nizoral Shampoo 120 ml",
+  "price": 64500,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spls1733x.jpg?v=1756130209"
+ },
+ {
+  "category": "haircare",
+  "title": "Aussie Mega Shampoo 300 ml",
+  "price": 21220,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc225.jpg?v=1760730052"
+ },
+ {
+  "category": "haircare",
+  "title": "Dabur Amla Hair Oil 200 ml",
+  "price": 16975,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc1083.jpg?v=1760735183"
+ },
+ {
+  "category": "haircare",
+  "title": "Dabur Olive Hair Oil 200 ml",
+  "price": 18095,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc1084.jpg?v=1760735189"
+ },
+ {
+  "category": "haircare",
+  "title": "Ori (Pure Shea Butter) ~60 g",
+  "price": 700,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/rspwxyz56x_1fc33588-f8f3-4874-ba44-58e3bcf19e4a.jpg?v=1761568991"
+ },
+ {
+  "category": "haircare",
+  "title": "Hask Argan Oil Shampoo 355 ml",
+  "price": 30555,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc2185.jpg?v=1760741693"
+ },
+ {
+  "category": "haircare",
+  "title": "Vatika Almond Hair Oil 200 ml",
+  "price": 18095,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc6837.jpg?v=1760767808"
+ },
+ {
+  "category": "haircare",
+  "title": "Vatika Coconut Hair Oil 200 ml",
+  "price": 18095,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc6838.jpg?v=1760767814"
+ },
+ {
+  "category": "haircare",
+  "title": "Alpecin Caffeine Shampoo 250 ml",
+  "price": 28735,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc097.jpg?v=1760729297"
+ },
+ {
+  "category": "baby",
+  "title": "Little Angel Baby Wipes x35",
+  "price": 680,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/HUBMA0404x.jpg?v=1770309127"
+ },
+ {
+  "category": "baby",
+  "title": "Fred & Flo Baby Lotion 500 ml",
+  "price": 14490,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc1690.jpg?v=1760738707"
+ },
+ {
+  "category": "baby",
+  "title": "Pampers New Baby Size 1 22 Nappies",
+  "price": 28850,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc4183.jpg?v=1760753259"
+ },
+ {
+  "category": "baby",
+  "title": "Pura Plastic Free Baby Wipes 60 Pack",
+  "price": 20970,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc4493.jpg?v=1760754938"
+ },
+ {
+  "category": "baby",
+  "title": "Softcare Baby Wipes 200 x 160 mm x60",
+  "price": 860,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl1385_7f79d08a-7b27-45ef-9095-fa9cdb64dc21.jpg?v=1756130542"
+ },
+ {
+  "category": "baby",
+  "title": "Huggies Dry Comfort Size 4 8-14 kg x28",
+  "price": 5990,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spbpdp2679x.jpg?v=1756131708"
+ },
+ {
+  "category": "baby",
+  "title": "Pampers Baby-Dry Size 7 Nappies 30 Pack",
+  "price": 49765,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc4173.jpg?v=1760753203"
+ },
+ {
+  "category": "baby",
+  "title": "Pampers Harmonie New Baby Wipes 46 Pack",
+  "price": 18405,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc4179.jpg?v=1760753236"
+ },
+ {
+  "category": "baby",
+  "title": "Nestle Cerelac Rice Infant Cereal 250 g",
+  "price": 2475,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl1383_0c707395-17a2-4a68-9837-adc93ea8d421.jpg?v=1756130750"
+ },
+ {
+  "category": "baby",
+  "title": "Pampers Harmonie Aqua Baby Wipes 48 Pack",
+  "price": 18750,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc4176.jpg?v=1760753219"
+ },
+ {
+  "category": "baby",
+  "title": "Pura Plastic Free Baby Wipes 3 x 60 Pack",
+  "price": 54180,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spmtsc4492.jpg?v=1760754932"
+ },
+ {
+  "category": "baby",
+  "title": "Softcare Gold Baby Diaper XL 14-25 kg x7",
+  "price": 1295,
+  "img": "https://cdn.shopify.com/s/files/1/0773/4037/7385/files/spxvl3091_7c577117-4a81-4d27-940c-94f023130f0c.jpg?v=1756132665"
+ }
+]
