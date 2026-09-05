@@ -21,8 +21,13 @@ export const metadata: Metadata = {
   applicationName: SITE.name,
   manifest: '/manifest.webmanifest',
   icons: {
-    icon: [{ url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+    icon: [
+      { url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icons/favicon-16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
     apple: [{ url: '/apple-touch-icon.png', sizes: '180x180' }],
+    shortcut: '/icons/favicon-32.png',
   },
   appleWebApp: {
     capable: true,

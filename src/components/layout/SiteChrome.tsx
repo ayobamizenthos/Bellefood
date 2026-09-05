@@ -7,7 +7,7 @@ import { ShoppingCart } from 'lucide-react'
 import { Link } from '@/lib/router'
 import { Header } from './Header'
 import { BottomNav } from './BottomNav'
-import { RouteProgress } from '@/components/ui/RouteProgress'
+import { NavLoadingOverlay } from '@/components/ui/NavLoadingOverlay'
 import { PushOptIn } from './PushOptIn'
 import { InstallPrompt } from './InstallPrompt'
 import { Footer } from './Footer'
@@ -22,7 +22,7 @@ export function SiteChrome({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-dvh flex-col bg-white">
-      <RouteProgress />
+      <NavLoadingOverlay />
       <Header />
       <main className="app-shell flex-1 pb-24 pt-4 md:pb-10">{children}</main>
 

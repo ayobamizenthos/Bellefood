@@ -4,10 +4,8 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { Share2, X } from 'lucide-react'
 
-const REPROMPT_AFTER_MS = 7 * 24 * 60 * 60 * 1000
-const MIN_VISITS = 2
-const DISMISS_KEY = 'bellefood-install-dismissed-at'
-const VISIT_KEY = 'bellefood-visit-count'
+const REPROMPT_AFTER_MS = 24 * 60 * 60 * 1000
+const DISMISS_KEY = 'bellefood-install-dismissed-v2'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -33,14 +31,11 @@ function isSuppressed(): boolean {
 
 export function InstallPrompt() {
   const [mounted, setMounted] = useState(false)
-  const [visits, setVisits] = useState(0)
   const [suppressed, setSuppressed] = useState(false)
+  const [installed, setInstalled] = useState(false)
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null)
 
   useEffect(() => {
-    const next = Number(window.localStorage.getItem(VISIT_KEY) || '0') + 1
-    window.localStorage.setItem(VISIT_KEY, String(next))
-    setVisits(next)
     setSuppressed(isSuppressed())
     setMounted(true)
 
@@ -48,14 +43,20 @@ export function InstallPrompt() {
       event.preventDefault()
       setInstallEvent(event as BeforeInstallPromptEvent)
     }
+    const handleInstalled = () => {
+      setInstalled(true)
+      setInstallEvent(null)
+    }
     window.addEventListener('beforeinstallprompt', captureInstallPrompt)
-    return () => window.removeEventListener('beforeinstallprompt', captureInstallPrompt)
+    window.addEventListener('appinstalled', handleInstalled)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', captureInstallPrompt)
+      window.removeEventListener('appinstalled', handleInstalled)
+    }
   }, [])
 
   if (!mounted) return null
-  if (suppressed) return null
-  if (isStandalone()) return null
-  if (visits < MIN_VISITS) return null
+  if (installed || suppressed || isStandalone()) return null
 
   const showIosHint = isIosSafari()
   if (!installEvent && !showIosHint) return null
@@ -70,7 +71,6 @@ export function InstallPrompt() {
     await installEvent.prompt()
     await installEvent.userChoice
     setInstallEvent(null)
-    dismiss()
   }
 
   return (
