@@ -83,7 +83,7 @@ export function AdminChrome({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex-1 md:pl-60">
+      <div className="flex-1 min-w-0 md:pl-60">
         <MobileTabBar />
         <main className="app-shell py-6 pb-24 md:pb-6">{children}</main>
       </div>
