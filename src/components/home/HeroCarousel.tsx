@@ -48,7 +48,7 @@ export function HeroCarousel({ products }: { products: Product[] }) {
       <div className="relative grid grid-cols-[1fr_auto] items-center gap-4 p-6 sm:gap-8 sm:p-8">
         <div className="flex flex-col gap-2.5 pb-6">
           <span className="inline-flex w-fit rounded-full bg-white/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest backdrop-blur">
-            Featured
+            Bestseller
           </span>
           <h2 className="line-clamp-2 text-lg font-bold leading-snug text-white sm:text-2xl">
             {current.name}
