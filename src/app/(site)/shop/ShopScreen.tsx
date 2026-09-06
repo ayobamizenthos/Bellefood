@@ -64,7 +64,7 @@ export default function ShopPage() {
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-2 rounded-2xl border border-line bg-white p-1">
         <StoreTab active={store === 'restaurant'} onClick={() => setStore('restaurant')}>
-          <UtensilsCrossed size={17} /> Restaurant
+          <UtensilsCrossed size={17} /> Kitchen
         </StoreTab>
         <StoreTab active={store === 'supermarket'} onClick={() => setStore('supermarket')}>
           <Store size={17} /> Supermarket

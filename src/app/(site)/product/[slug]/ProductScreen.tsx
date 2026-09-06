@@ -113,7 +113,7 @@ export default function ProductPage({ initialProduct }: { initialProduct?: Produ
 
         <div className="flex flex-col gap-3">
           <span className="text-body font-medium capitalize text-ink-muted">
-            {product.store === 'supermarket' ? 'Supermarket' : 'Restaurant'}
+            {product.store === 'supermarket' ? 'Supermarket' : 'Kitchen'}
           </span>
           <h1 className="text-2xl font-bold leading-tight">{product.name}</h1>
           <div className="flex items-center gap-3">

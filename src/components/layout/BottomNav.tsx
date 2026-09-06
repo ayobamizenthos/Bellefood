@@ -35,7 +35,7 @@ export function BottomNav() {
         </Link>
         <Link to="/shop?store=restaurant" className={tab(isRestaurant)}>
           <UtensilsCrossed size={22} className={cn(isRestaurant && 'fill-brand/10')} />
-          Restaurant
+          Kitchen
         </Link>
         <Link
           to="/cart"

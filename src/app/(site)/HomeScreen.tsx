@@ -23,7 +23,7 @@ export default function HomePage() {
         <StoreCard
           to="/shop?store=restaurant"
           icon={<UtensilsCrossed size={20} />}
-          title="Restaurant"
+          title="Kitchen"
           subtitle="Hot meals, 24/7"
         />
         <StoreCard
