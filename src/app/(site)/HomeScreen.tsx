@@ -22,13 +22,13 @@ export default function HomePage() {
       <section className="grid grid-cols-2 gap-3">
         <StoreCard
           to="/shop?store=restaurant"
-          icon={<UtensilsCrossed size={22} />}
+          icon={<UtensilsCrossed size={20} />}
           title="Restaurant"
           subtitle="Hot meals, 24/7"
         />
         <StoreCard
           to="/shop?store=supermarket"
-          icon={<Store size={22} />}
+          icon={<Store size={20} />}
           title="Supermarket"
           subtitle="Groceries & more"
         />
@@ -65,14 +65,14 @@ function StoreCard({
   return (
     <Link
       to={to}
-      className="group flex items-center gap-2.5 rounded-2xl border border-line bg-white p-3 shadow-card transition-colors hover:border-brand"
+      className="group flex items-center gap-2 rounded-2xl border border-line bg-white p-3 shadow-card transition-colors hover:border-brand"
     >
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-tint text-brand">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand-tint text-brand">
         {icon}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-bold leading-tight">{title}</p>
-        <p className="truncate text-label text-ink-muted">{subtitle}</p>
+        <p className="truncate text-[13px] font-bold leading-tight">{title}</p>
+        <p className="truncate text-[11px] text-ink-muted">{subtitle}</p>
       </div>
     </Link>
   )
