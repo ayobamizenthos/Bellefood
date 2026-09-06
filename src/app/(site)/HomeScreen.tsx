@@ -65,13 +65,13 @@ function StoreCard({
   return (
     <Link
       to={to}
-      className="group flex items-center gap-3 rounded-2xl border border-line bg-white p-4 shadow-card transition-colors hover:border-brand"
+      className="group flex items-center gap-2.5 rounded-2xl border border-line bg-white p-3 shadow-card transition-colors hover:border-brand"
     >
-      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-brand-tint text-brand">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-tint text-brand">
         {icon}
       </span>
-      <div className="min-w-0">
-        <p className="font-bold leading-tight">{title}</p>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-bold leading-tight">{title}</p>
         <p className="truncate text-label text-ink-muted">{subtitle}</p>
       </div>
     </Link>
