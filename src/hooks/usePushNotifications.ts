@@ -4,7 +4,7 @@ import { useAuth } from '@/stores/auth'
 
 const VAPID_PUBLIC_KEY =
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ??
-  'BLpVRx2ZSxnCcldge4lxKmdP0R106_p6ql_4Ni70q9ufshopdYXWlG1erDZj8v9tF_JasA3iy7ladnWhSGZV02M'
+  'BJ0gSPvFQYkKiQaHlcD6TXO0wHsqMzkhAB0-S6Sr-LYuUe3MmDr9M-ZKQQK1PCwi7jU9vV5eS4l1XtnWgx9Pzrw'
 
 type PushState = 'unsupported' | 'default' | 'granted' | 'denied'
 
