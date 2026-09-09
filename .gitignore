@@ -1,0 +1,25 @@
+node_modules
+dist
+dist-ssr
+*.local
+.env
+.env.local
+.env.*.local
+.DS_Store
+.netlify
+*.log
+npm-debug.log*
+
+# Secrets (never commit)
+.mcp.json
+
+# Supabase CLI local state
+supabase/.temp
+supabase/.branches
+
+.next
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+public/sw.js
+public/swe-worker-*.js
