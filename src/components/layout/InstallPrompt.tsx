@@ -53,11 +53,19 @@ export function InstallPrompt() {
 
   const canShow = mounted && !installed && !isStandalone() && (Boolean(installEvent) || iosHint)
 
-  // Roll the pill out from the logo a beat after it becomes available.
+  // Roll the pill out from the logo a beat after it becomes available,
+  // then roll it back in on its own after a short glance.
   useEffect(() => {
     if (!canShow) return
-    const timer = setTimeout(() => setCollapsed(false), REVEAL_DELAY_MS)
-    return () => clearTimeout(timer)
+    let collapseTimer: ReturnType<typeof setTimeout>
+    const revealTimer = setTimeout(() => {
+      setCollapsed(false)
+      collapseTimer = setTimeout(() => setCollapsed(true), 4000)
+    }, REVEAL_DELAY_MS)
+    return () => {
+      clearTimeout(revealTimer)
+      clearTimeout(collapseTimer)
+    }
   }, [canShow])
 
   if (!canShow) return null

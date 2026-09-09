@@ -45,17 +45,13 @@ export function PushOptIn() {
           <Bell size={20} />
         </span>
         <div className="flex-1">
-          <p className="font-semibold">Turn on order alerts</p>
+          <p className="font-semibold">Order alerts</p>
           {denied ? (
             <p className="text-body text-ink-muted">
-              Notifications are blocked. Tap the lock icon in your browser address bar and allow
-              notifications for this site to get order alerts and sounds.
+              Blocked — allow notifications for this site in your browser settings.
             </p>
           ) : (
-            <p className="text-body text-ink-muted">
-              Get a sound and a notification on your device the moment anything happens with your
-              orders, even when the app is closed.
-            </p>
+            <p className="text-body text-ink-muted">Sound + alerts, even when the app is closed.</p>
           )}
           {!denied && (
             <div className="mt-3 flex gap-2">
