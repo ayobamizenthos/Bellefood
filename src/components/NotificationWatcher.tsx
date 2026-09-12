@@ -23,10 +23,13 @@ export function NotificationWatcher() {
     [isAdmin]
   )
 
-  const alert = useCallback(() => {
-    if (isAdmin) playAdminAlert()
-    else playCustomerAlert()
-  }, [isAdmin])
+  const alert = useCallback(
+    (row?: AppNotification) => {
+      if (isAdmin) playAdminAlert(row?.title ?? 'You have a new order')
+      else playCustomerAlert(row?.title)
+    },
+    [isAdmin]
+  )
 
   // Fire the sound + cards for anything that arrived while the app was closed,
   // backgrounded, or offline — the moment it becomes visible again.
@@ -43,7 +46,11 @@ export function NotificationWatcher() {
     const fresh = (data ?? []).filter(row => !since || row.created_at > since)
     if (fresh.length === 0) return
     localStorage.setItem(lastAlertKey(userId), fresh[0].created_at)
-    alert()
+    alert(
+      fresh.length === 1
+        ? fresh[0]
+        : ({ title: fresh.length + ' new ' + (isAdmin ? 'orders' : 'updates') } as AppNotification)
+    )
     if (fresh.length === 1) {
       push({ title: fresh[0].title, message: fresh[0].message, href: hrefFor(fresh[0]) })
     } else {
@@ -69,7 +76,7 @@ export function NotificationWatcher() {
           if (!usePreferences.getState().alertsEnabled) return
           const row = payload.new as AppNotification
           localStorage.setItem(lastAlertKey(userId), row.created_at)
-          alert()
+          alert(row)
           push({ title: row.title, message: row.message, href: hrefFor(row) })
         }
       )
