@@ -11,7 +11,6 @@ dist-ssr
 npm-debug.log*
 
 # Secrets (never commit)
-.mcp.json
 
 # Supabase CLI local state
 supabase/.temp
