@@ -12,7 +12,10 @@ const admin = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 )
 
-interface NotificationRecord {
+const BATCH = 200
+
+interface Pending {
+  id: string
   user_id: string
   order_id: string | null
   title: string
@@ -20,54 +23,122 @@ interface NotificationRecord {
   type: string
 }
 
-Deno.serve(async req => {
-  try {
-    const body = await req.json()
-    const record: NotificationRecord = body.record ?? body
-    if (!record?.user_id) return json({ error: 'no user_id' }, 400)
+interface Device {
+  id: string
+  user_id: string
+  endpoint: string
+  p256dh_key: string
+  auth_key: string
+}
 
-    const [{ data: subscriptions }, { count: unread }] = await Promise.all([
-      admin.from('push_subscriptions').select('*').eq('user_id', record.user_id),
+/**
+ * Sends every notification that has not reached a phone yet.
+ *
+ * The queue is the notifications table itself: a row with no pushed_at is still
+ * outstanding. That is what makes an unreachable device harmless - the row stays
+ * unstamped, and the next run delivers it. Stamping is what stops anyone being
+ * handed the same alert twice.
+ *
+ * The request body is ignored. The database calls this on every insert, and it
+ * is safe to call on a timer as a backstop, because it only ever picks up what
+ * is still outstanding.
+ */
+Deno.serve(async () => {
+  try {
+    const { data: pending } = await admin
+      .from('notifications')
+      .select('id, user_id, order_id, title, message, type')
+      .is('pushed_at', null)
+      .order('created_at', { ascending: true })
+      .limit(BATCH)
+
+    const queue = (pending ?? []) as Pending[]
+    if (queue.length === 0) return json({ sent: 0, handled: 0 })
+
+    const recipients = [...new Set(queue.map(row => row.user_id))]
+
+    const [{ data: devices }, { data: unreadRows }] = await Promise.all([
+      admin
+        .from('push_subscriptions')
+        .select('id, user_id, endpoint, p256dh_key, auth_key')
+        .in('user_id', recipients),
       admin
         .from('notifications')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', record.user_id)
+        .select('user_id')
+        .in('user_id', recipients)
         .eq('is_read', false),
     ])
 
-    if (!subscriptions?.length) return json({ ok: true, sent: 0, reason: 'no subscriptions' })
+    const byUser = new Map<string, Device[]>()
+    for (const device of (devices ?? []) as Device[]) {
+      const list = byUser.get(device.user_id)
+      if (list) list.push(device)
+      else byUser.set(device.user_id, [device])
+    }
 
-    const payload = JSON.stringify({
-      title: record.title,
-      body: record.message,
-      tag: record.order_id ?? record.type,
-      url: record.order_id ? `/orders/${record.order_id}` : '/notifications',
-      count: unread ?? 0,
-    })
+    const unread = new Map<string, number>()
+    for (const row of (unreadRows ?? []) as { user_id: string }[]) {
+      unread.set(row.user_id, (unread.get(row.user_id) ?? 0) + 1)
+    }
 
+    const delivered: string[] = []
+    const dead: string[] = []
     let sent = 0
-    const errors: { status?: number; message: string }[] = []
 
-    await Promise.all(
-      subscriptions.map(async sub => {
-        try {
-          await webpush.sendNotification(
-            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh_key, auth: sub.auth_key } },
+    for (const row of queue) {
+      const targets = byUser.get(row.user_id) ?? []
+      // Nobody registered a device. The alert still sits in the in-app inbox, so
+      // it is marked handled rather than retried on every run forever.
+      if (targets.length === 0) {
+        delivered.push(row.id)
+        continue
+      }
+
+      const payload = JSON.stringify({
+        title: row.title,
+        body: row.message,
+        tag: row.order_id ?? row.type,
+        url: row.order_id ? `/orders/${row.order_id}` : '/notifications',
+        count: unread.get(row.user_id) ?? 0,
+      })
+
+      const results = await Promise.allSettled(
+        targets.map(device =>
+          webpush.sendNotification(
+            {
+              endpoint: device.endpoint,
+              keys: { p256dh: device.p256dh_key, auth: device.auth_key },
+            },
             payload,
             { TTL: 86400, urgency: 'high' }
           )
-          sent++
-        } catch (error) {
-          const status = (error as { statusCode?: number }).statusCode
-          errors.push({ status, message: (error as Error).message })
-          if (status === 404 || status === 410) {
-            await admin.from('push_subscriptions').delete().eq('id', sub.id)
-          }
-        }
-      })
-    )
+        )
+      )
 
-    return json({ ok: sent > 0, sent, failed: errors.length, errors })
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          sent += 1
+          return
+        }
+        const status = (result.reason as { statusCode?: number })?.statusCode
+        // 404 and 410 mean the browser threw this subscription away
+        if (status === 404 || status === 410) dead.push(targets[index].id)
+      })
+
+      delivered.push(row.id)
+    }
+
+    if (delivered.length > 0) {
+      await admin
+        .from('notifications')
+        .update({ pushed_at: new Date().toISOString() })
+        .in('id', delivered)
+    }
+    if (dead.length > 0) {
+      await admin.from('push_subscriptions').delete().in('id', dead)
+    }
+
+    return json({ sent, handled: delivered.length, pruned: dead.length })
   } catch (error) {
     return json({ error: (error as Error).message }, 500)
   }

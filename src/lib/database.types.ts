@@ -131,6 +131,7 @@ export type Database = {
           is_read: boolean
           message: string
           order_id: string | null
+          pushed_at: string | null
           title: string
           type: Database["public"]["Enums"]["notification_type"]
           user_id: string
@@ -141,6 +142,7 @@ export type Database = {
           is_read?: boolean
           message: string
           order_id?: string | null
+          pushed_at?: string | null
           title: string
           type: Database["public"]["Enums"]["notification_type"]
           user_id: string
@@ -151,6 +153,7 @@ export type Database = {
           is_read?: boolean
           message?: string
           order_id?: string | null
+          pushed_at?: string | null
           title?: string
           type?: Database["public"]["Enums"]["notification_type"]
           user_id?: string
