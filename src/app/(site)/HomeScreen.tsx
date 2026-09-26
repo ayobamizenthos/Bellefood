@@ -90,7 +90,7 @@ function HomeSearch() {
   const router = useRouter()
   const [query, setQuery] = useState('')
   const [focused, setFocused] = useState(false)
-  const blurTimer = useRef<ReturnType<typeof setTimeout>>()
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const term = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS)
   const searching = term.length >= MIN_SEARCH_LENGTH
   const { products: matches } = useProducts({

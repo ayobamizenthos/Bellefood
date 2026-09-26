@@ -27,15 +27,16 @@ export async function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }): Promise<Metadata> {
-  const product = await getProduct(params.slug)
+  const { slug } = await params
+  const product = await getProduct(slug)
   if (!product) return { title: 'Product not found', robots: { index: false, follow: false } }
 
   const description = (product.description ?? SITE.tagline).slice(0, 160)
-  const url = `/product/${params.slug}`
+  const url = `/product/${slug}`
   const ogImage = {
-    url: `/product/${params.slug}/og-image`,
+    url: `/product/${slug}/og-image`,
     width: 1200,
     height: 630,
     type: 'image/jpeg',
@@ -62,8 +63,9 @@ export async function generateMetadata({
   }
 }
 
-export default async function Page({ params }: { params: { slug: string } }) {
-  const product = await getProduct(params.slug)
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const product = await getProduct(slug)
   if (!product) notFound()
   return <ProductScreen initialProduct={product} />
 }

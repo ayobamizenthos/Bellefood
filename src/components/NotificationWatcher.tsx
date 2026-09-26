@@ -31,7 +31,7 @@ function writeMarker(userId: string, createdAt: string) {
 
 /** Owns the only notifications channel: keeps the inbox store current and sounds new alerts. */
 export function NotificationWatcher() {
-  const { userId, isAdmin } = useAuth()
+  const { userId, isAdmin, loading } = useAuth()
   const pushToast = useToasts(state => state.push)
   const replaceInbox = useNotificationStore(state => state.replace)
   const upsertNotification = useNotificationStore(state => state.upsert)
@@ -66,7 +66,8 @@ export function NotificationWatcher() {
   )
 
   const syncInbox = useCallback(async () => {
-    if (!userId || catchingUp.current) return
+    // wait for the profile so an admin backlog is announced as orders, not customer updates
+    if (!userId || loading || catchingUp.current) return
     catchingUp.current = true
     try {
       const { data } = await supabase
@@ -93,7 +94,7 @@ export function NotificationWatcher() {
     } finally {
       catchingUp.current = false
     }
-  }, [userId, replaceInbox, announce, announceBacklog])
+  }, [userId, loading, replaceInbox, announce, announceBacklog])
 
   useEffect(() => {
     if (!userId) {

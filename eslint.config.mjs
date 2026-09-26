@@ -1,15 +1,11 @@
-import { dirname } from 'path'
-import { fileURLToPath } from 'url'
-import { FlatCompat } from '@eslint/eslintrc'
-
-const compat = new FlatCompat({ baseDirectory: dirname(fileURLToPath(import.meta.url)) })
+import coreWebVitals from 'eslint-config-next/core-web-vitals'
+import typescript from 'eslint-config-next/typescript'
 
 const eslintConfig = [
   {
     ignores: [
       '.next/**',
       '.netlify/**',
-      '.kilo/**',
       'next-env.d.ts',
       'public/sw.js',
       'public/swe-worker-*.js',
@@ -17,13 +13,19 @@ const eslintConfig = [
       'supabase/functions/**',
     ],
   },
-  ...compat.extends('next/core-web-vitals', 'next/typescript'),
+  ...coreWebVitals,
+  ...typescript,
   {
     rules: {
       '@typescript-eslint/no-unused-vars': [
         'warn',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
       ],
+      // These two only guide the React Compiler, which this app does not enable.
+      // Client-only state (the cart, the session) is read after mount on purpose
+      // so the server render and the first client render match.
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/preserve-manual-memoization': 'off',
     },
   },
 ]

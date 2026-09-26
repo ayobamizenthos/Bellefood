@@ -50,7 +50,10 @@ export default function OrderTrackingScreen({ orderId }: { orderId: string }) {
 
   const closeCelebration = () => {
     setCelebrated(true)
-    router.replace(pathname)
+    const kept = new URLSearchParams(params.toString())
+    kept.delete('placed')
+    const query = kept.toString()
+    router.replace(query ? pathname + '?' + query : pathname)
   }
 
   const confirmArrival = async () => {

@@ -53,6 +53,11 @@ const acknowledge = () => new Response(null, { status: 200 })
  * the tab before the browser can call paystack-verify. Replays are harmless: only a pending
  * order is ever updated.
  */
+// Each checkout attempt is charged as ORDER_NUMBER-attempt, so a receipt only
+// ever settles the order it was raised for.
+const belongsTo = (reference: string, orderNumber: string) =>
+  reference === orderNumber || reference.startsWith(orderNumber + '-')
+
 Deno.serve(async req => {
   if (req.method !== 'POST') return new Response(null, { status: 405 })
 
@@ -72,11 +77,10 @@ Deno.serve(async req => {
 
     const { data: order } = await admin
       .from('orders')
-      .select('id, total, payment_status')
+      .select('id, order_number, total, payment_status')
       .eq('id', orderId)
-      .eq('order_number', reference)
       .maybeSingle()
-    if (!order || order.payment_status !== 'pending') return acknowledge()
+    if (!order || order.payment_status !== 'pending' || !belongsTo(reference, order.order_number)) return acknowledge()
 
     if (charge.currency !== 'NGN') return acknowledge()
     if (typeof charge.amount !== 'number' || charge.amount < Math.round(Number(order.total) * 100)) {

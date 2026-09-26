@@ -1,5 +1,6 @@
 import OrderDetailScreen from './OrderDetailScreen'
 
-export default function Page({ params }: { params: { orderId: string } }) {
-  return <OrderDetailScreen orderId={params.orderId} />
+export default async function Page({ params }: { params: Promise<{ orderId: string }> }) {
+  const { orderId } = await params
+  return <OrderDetailScreen orderId={orderId} />
 }

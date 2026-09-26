@@ -8,6 +8,13 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: ${{ vars.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY }}
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ vars.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
+      NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ${{ vars.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME }}
+      NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: ${{ vars.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

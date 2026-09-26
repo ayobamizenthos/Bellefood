@@ -59,13 +59,17 @@ Deno.serve(async () => {
 
     const recipients = [...new Set(queue.map(alert => alert.user_id))]
 
-    const [{ data: devices }, { data: unreadRows }] = await Promise.all([
+    const [{ data: devices, error: devicesError }, { data: unreadRows, error: unreadError }] = await Promise.all([
       admin
         .from('push_subscriptions')
         .select('id, user_id, endpoint, p256dh_key, auth_key')
         .in('user_id', recipients),
       admin.from('notifications').select('user_id').in('user_id', recipients).eq('is_read', false),
     ])
+    // Without the device list every alert would look undeliverable and be marked
+    // sent; failing here lets the claim lapse so a later run tries again.
+    if (devicesError) throw devicesError
+    if (unreadError) throw unreadError
 
     const devicesByUser = new Map<string, Device[]>()
     for (const device of (devices ?? []) as Device[]) {

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -7,7 +7,9 @@ const FOCUSABLE =
 export function useDialog<T extends HTMLElement>(open: boolean, onClose: () => void) {
   const containerRef = useRef<T>(null)
   const closeRef = useRef(onClose)
-  closeRef.current = onClose
+  useLayoutEffect(() => {
+    closeRef.current = onClose
+  })
 
   useEffect(() => {
     if (!open) return

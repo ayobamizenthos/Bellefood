@@ -38,9 +38,11 @@ Deno.serve(async req => {
     if (!order) return reply(404, { ok: false, error: 'order not found' })
     if (order.payment_status === 'verified') return reply(200, { ok: true })
 
-    // Checkout charges each order under its own order number, so a receipt for
-    // one order can never be presented against another.
-    if (reference !== order.order_number) return reply(400, { ok: false, error: 'reference does not match order' })
+    // Each attempt is charged as ORDER_NUMBER-attempt, so a receipt for one order
+    // can never be presented against another.
+    if (reference !== order.order_number && !reference.startsWith(order.order_number + '-')) {
+      return reply(400, { ok: false, error: 'reference does not match order' })
+    }
 
     const verify = await fetch('https://api.paystack.co/transaction/verify/' + encodeURIComponent(reference), {
       headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` },

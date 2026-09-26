@@ -13,7 +13,7 @@ export function NavLoadingOverlay() {
   const pathname = usePathname()
   const [visible, setVisible] = useState(false)
   const shownAt = useRef(0)
-  const showTimer = useRef<ReturnType<typeof setTimeout>>()
+  const showTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const previousPath = useRef(pathname)
 
   useEffect(() => {

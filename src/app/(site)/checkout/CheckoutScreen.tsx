@@ -79,6 +79,8 @@ export default function CheckoutScreen() {
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
   const [placedOrder, setPlacedOrder] = useState<PlacedOrder | null>(null)
+  // set once a card attempt is cancelled or fails, so retry wording never shows on the first try
+  const [paymentInterrupted, setPaymentInterrupted] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const leavingForOrder = useRef(false)
   const prefilled = useRef(false)
@@ -192,13 +194,15 @@ export default function CheckoutScreen() {
   }
 
   const payForOrder = async (order: PlacedOrder) => {
+    // Paystack refuses a reference it has seen before, even from a closed popup
     const receipt = await payWithPaystack({
       email: session?.user.email ?? '',
       amountNaira: Number(order.total),
-      reference: order.order_number,
+      reference: order.order_number + '-' + Date.now().toString(36),
       orderId: order.id,
     })
     if (!receipt) {
+      setPaymentInterrupted(true)
       setError('Payment was cancelled. Your order is saved, so you can try paying again.')
       return
     }
@@ -224,6 +228,7 @@ export default function CheckoutScreen() {
       }
       await payForOrder(order)
     } catch {
+      setPaymentInterrupted(true)
       setError('Payment could not start. Please try again or pay by bank transfer.')
     } finally {
       setPlacing(false)
@@ -232,7 +237,7 @@ export default function CheckoutScreen() {
 
   const payButtonLabel = coveredByPoints
     ? 'Place order'
-    : placedOrder
+    : placedOrder && paymentInterrupted
       ? `Retry payment of ${formatNaira(Number(placedOrder.total))}`
       : method === 'paystack'
         ? `Pay ${formatNaira(payable)}`
@@ -334,7 +339,7 @@ export default function CheckoutScreen() {
         <section className="flex flex-col gap-4">
           <h1 className="text-xl font-bold">Payment</h1>
 
-          {placedOrder && (
+          {placedOrder && paymentInterrupted && (
             <p className="rounded-xl bg-brand-tint px-4 py-3 text-body text-brand">
               Order {placedOrder.order_number} is saved. Retrying uses the same order, so you are
               never charged twice.

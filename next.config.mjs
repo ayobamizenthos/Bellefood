@@ -7,18 +7,17 @@ const withSerwist = withSerwistInit({
   reloadOnOnline: true,
 })
 
-const supabaseOrigin = new URL(
-  process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || 'https://wpanjjgxrbyrieirutpl.supabase.co'
-).origin
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL) throw new Error('NEXT_PUBLIC_SUPABASE_URL must be set')
+const supabaseOrigin = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL.trim()).origin
 
 // Next injects inline bootstrap scripts and styles without nonces, hence 'unsafe-inline'.
 const contentSecurityPolicy = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://js.paystack.co https://*.paystack.co",
+  `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''} https://js.paystack.co https://*.paystack.co`,
   "style-src 'self' 'unsafe-inline' https://*.paystack.co https://*.paystack.com",
   `img-src 'self' data: blob: https://res.cloudinary.com ${supabaseOrigin}`,
   "font-src 'self' data:",
-  `connect-src 'self' ${supabaseOrigin} ${supabaseOrigin.replace('https://', 'wss://')} https://api.cloudinary.com https://*.paystack.co`,
+  `connect-src 'self' ${supabaseOrigin} ${supabaseOrigin.replace('https://', 'wss://')} https://api.cloudinary.com https://res.cloudinary.com https://*.paystack.co`,
   'frame-src https://*.paystack.co https://*.paystack.com',
   "worker-src 'self'",
   "manifest-src 'self'",

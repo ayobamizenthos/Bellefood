@@ -1,5 +1,6 @@
 import ProductEditScreen from '../ProductEditScreen'
 
-export default function Page({ params }: { params: { productId: string } }) {
-  return <ProductEditScreen productId={params.productId} />
+export default async function Page({ params }: { params: Promise<{ productId: string }> }) {
+  const { productId } = await params
+  return <ProductEditScreen productId={productId} />
 }

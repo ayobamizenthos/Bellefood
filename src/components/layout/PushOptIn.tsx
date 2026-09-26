@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { Bell, X } from 'lucide-react'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { useAuth } from '@/stores/auth'
@@ -8,9 +9,12 @@ import { usePrompts } from '@/stores/prompts'
 import { Button } from '@/components/ui/Button'
 
 const DISMISS_KEY = 'bellefood-push-optin-dismissed'
+// These screens end in a buying action the card would sit on top of.
+const BUSY_SCREENS = ['/product', '/cart', '/checkout']
 
 export function PushOptIn() {
-  const { session } = useAuth()
+  const { session, isAdmin } = useAuth()
+  const pathname = usePathname()
   const { supported, state, busy, subscribe } = usePushNotifications()
   const setPushPromptVisible = usePrompts(prompts => prompts.setPushPromptVisible)
   const [snoozed, setSnoozed] = useState(true)
@@ -23,7 +27,10 @@ export function PushOptIn() {
     }
   }, [])
 
-  const visible = Boolean(session) && supported && state !== 'granted' && !snoozed
+  const onBusyScreen = BUSY_SCREENS.some(prefix => pathname.startsWith(prefix))
+  // Blocked has nothing to tap, so it is left to the notification settings screen.
+  const visible =
+    Boolean(session) && supported && state === 'default' && !snoozed && !onBusyScreen
 
   useEffect(() => {
     setPushPromptVisible(visible)
@@ -39,8 +46,6 @@ export function PushOptIn() {
   }
 
   if (!visible) return null
-
-  const denied = state === 'denied'
 
   return (
     <div className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+96px)] z-50 mx-auto max-w-app animate-slide-up rounded-2xl border border-brand/30 bg-white p-4 shadow-pop md:bottom-6">
@@ -59,20 +64,16 @@ export function PushOptIn() {
         <div className="flex-1">
           <p className="font-semibold">Order alerts</p>
           <p className="text-body text-ink-muted">
-            {denied
-              ? 'Notifications are blocked. Allow them for this site in your browser settings.'
-              : 'Sound and alerts, even when the app is closed.'}
+            {isAdmin ? 'Hear new orders the moment they arrive.' : 'Know the moment your order moves.'}
           </p>
-          {!denied && (
-            <div className="mt-3 flex gap-2">
-              <Button size="sm" loading={busy} onClick={subscribe}>
-                Enable notifications
-              </Button>
-              <Button size="sm" variant="ghost" onClick={dismiss}>
-                Later
-              </Button>
-            </div>
-          )}
+          <div className="mt-3 flex gap-2">
+            <Button size="sm" loading={busy} onClick={subscribe}>
+              Enable notifications
+            </Button>
+            <Button size="sm" variant="ghost" onClick={dismiss}>
+              Later
+            </Button>
+          </div>
         </div>
       </div>
     </div>

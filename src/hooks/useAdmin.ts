@@ -102,8 +102,29 @@ export interface DashboardStats {
 
 const RECENT_ORDERS = 8
 
+// PostgREST returns at most 1000 rows per request, so revenue is read page by page.
+const PAGE_SIZE = 1000
+
+async function fetchPaidOrders() {
+  const rows: { total: number; created_at: string }[] = []
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('total, created_at')
+      .eq('payment_status', 'verified')
+      .neq('status', 'cancelled')
+      .order('created_at')
+      .range(from, from + PAGE_SIZE - 1)
+    if (error) throw error
+    rows.push(...(data ?? []))
+    if (!data || data.length < PAGE_SIZE) return rows
+  }
+}
+
 export function useDashboardStats() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let active = true
@@ -112,11 +133,7 @@ export function useDashboardStats() {
         supabase.from('orders').select('id', { count: 'exact', head: true }),
         supabase.from('products').select('id', { count: 'exact', head: true }),
         supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_admin', false),
-        supabase
-          .from('orders')
-          .select('total, created_at')
-          .eq('payment_status', 'verified')
-          .neq('status', 'cancelled'),
+        fetchPaidOrders(),
         supabase
           .from('orders')
           .select('*')
@@ -128,17 +145,21 @@ export function useDashboardStats() {
         orderCount: orders.count ?? 0,
         productCount: products.count ?? 0,
         customerCount: customers.count ?? 0,
-        paidOrders: paid.data ?? [],
+        paidOrders: paid,
         recentOrders: recent.data ?? [],
       })
     }
-    void fetchStats()
+    setFailed(false)
+    fetchStats().catch(() => {
+      if (active) setFailed(true)
+    })
     return () => {
       active = false
     }
-  }, [])
+  }, [attempt])
 
-  return { stats, loading: stats === null }
+  const retry = useCallback(() => setAttempt(count => count + 1), [])
+  return { stats, loading: stats === null && !failed, failed, retry }
 }
 
 export async function updateOrderStatus(orderId: string, status: OrderStatus) {

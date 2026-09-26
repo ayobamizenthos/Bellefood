@@ -22,13 +22,14 @@ async function productImage(slug: string): Promise<Buffer | null> {
     .toBuffer()
 }
 
-export async function GET(_request: Request, { params }: { params: { slug: string } }) {
+export async function GET(_request: Request, { params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
   const canvas = sharp({
     create: { width: WIDTH, height: HEIGHT, channels: 3, background: palette.surface },
   })
 
   // A missing or broken product photo still yields a valid blank share card.
-  const image = await productImage(params.slug).catch(() => null)
+  const image = await productImage(slug).catch(() => null)
   if (image) canvas.composite([{ input: image, gravity: 'center' }])
 
   const jpeg = await canvas.jpeg({ quality: 85 }).toBuffer()

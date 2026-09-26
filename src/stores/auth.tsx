@@ -23,10 +23,15 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
   return data
 }
 
+// Drops cached responses that may hold this account's data, keeping the precached app shell.
 async function clearCachedResponses() {
   if (typeof caches === 'undefined') return
-  const names = await caches.keys()
-  await Promise.all(names.map(name => caches.delete(name)))
+  try {
+    const names = await caches.keys()
+    await Promise.all(names.filter(name => !name.includes('precache')).map(name => caches.delete(name)))
+  } catch {
+    // storage can be unavailable in private mode; signing out must still finish
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

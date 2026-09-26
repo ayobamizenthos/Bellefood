@@ -11,6 +11,7 @@ import { revenueBuckets } from '@/lib/revenue'
 import type { RevenueRange } from '@/lib/revenue'
 import { palette } from '@/lib/palette'
 import { PageSpinner } from '@/components/ui/BrandLoader'
+import { Button } from '@/components/ui/Button'
 import { Chip } from '@/components/ui/Chip'
 import { StatusPill } from '@/components/order/StatusPill'
 
@@ -23,7 +24,7 @@ const RANGES: { key: RevenueRange; label: string }[] = [
 ]
 
 export default function DashboardScreen() {
-  const { stats, loading } = useDashboardStats()
+  const { stats, loading, failed, retry } = useDashboardStats()
   const [range, setRange] = useState<RevenueRange>('7d')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
@@ -39,6 +40,14 @@ export default function DashboardScreen() {
   )
   const rangeTotal = buckets.reduce((sum, bucket) => sum + bucket.total, 0)
 
+  if (failed) {
+    return (
+      <div className="py-20 text-center">
+        <p className="text-sm text-ink-muted">The dashboard could not load.</p>
+        <Button className="mt-4" onClick={retry}>Try again</Button>
+      </div>
+    )
+  }
   if (loading || !stats) return <PageSpinner />
 
   return (
