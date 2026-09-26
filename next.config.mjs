@@ -15,7 +15,7 @@ const supabaseOrigin = new URL(
 const contentSecurityPolicy = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' https://js.paystack.co https://*.paystack.co",
-  "style-src 'self' 'unsafe-inline' https://paystack.com https://*.paystack.com",
+  "style-src 'self' 'unsafe-inline' https://*.paystack.co https://*.paystack.com",
   `img-src 'self' data: blob: https://res.cloudinary.com ${supabaseOrigin}`,
   "font-src 'self' data:",
   `connect-src 'self' ${supabaseOrigin} ${supabaseOrigin.replace('https://', 'wss://')} https://api.cloudinary.com https://*.paystack.co`,
@@ -26,7 +26,6 @@ const contentSecurityPolicy = [
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'self'",
-  'upgrade-insecure-requests',
 ].join('; ')
 
 const securityHeaders = [
