@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
-import { useParams } from '@/lib/router'
 import {
+  Check,
   ChevronDown,
   Heart,
   Minus,
@@ -16,26 +16,31 @@ import { useShareProduct } from '@/hooks/useShareProduct'
 import { useProduct, useProducts } from '@/hooks/useProducts'
 import { formatNaira } from '@/lib/format'
 import type { Product } from '@/lib/types'
+import { MAX_ITEM_QUANTITY, toCartItem } from '@/lib/types'
+import { cldThumb } from '@/lib/image'
 import { cn } from '@/lib/cn'
 import { Button } from '@/components/ui/Button'
 import { StarRating } from '@/components/ui/StarRating'
 import { StockBadge, stockLevel } from '@/components/ui/StockBadge'
 import { ProductCard } from '@/components/product/ProductCard'
-import { PageSpinner } from '@/components/ui/PageSpinner'
 import { useCart } from '@/stores/cart'
 import { useWishlist } from '@/stores/wishlist'
 
-export default function ProductPage({ initialProduct }: { initialProduct?: Product }) {
-  const { slug } = useParams()
-  const { product: fetched, loading } = useProduct(slug)
-  const product = fetched ?? initialProduct ?? null
+const ADDED_FEEDBACK_MS = 1600
+const GALLERY_IMAGE_WIDTH = 1000
+const THUMBNAIL_WIDTH = 128
+
+export default function ProductScreen({ initialProduct }: { initialProduct: Product }) {
+  const { product: fetched } = useProduct(initialProduct.slug)
+  const product = fetched ?? initialProduct
   const { products: related } = useProducts({
-    store: product?.store,
-    category: product?.category,
+    store: product.store,
+    category: product.category,
     sort: 'rating',
   })
-  const addItem = useCart(s => s.addItem)
-  const { has, toggle } = useWishlist()
+  const addItem = useCart(state => state.addItem)
+  const saved = useWishlist(state => state.ids.includes(product.id))
+  const toggleSaved = useWishlist(state => state.toggle)
   const share = useShareProduct()
 
   const [activeImage, setActiveImage] = useState(0)
@@ -57,12 +62,8 @@ export default function ProductPage({ initialProduct }: { initialProduct?: Produ
     return () => observer.disconnect()
   }, [product])
 
-  if (loading && !initialProduct) return <PageSpinner />
-  if (!product) return <p className="py-16 text-center">Item not found.</p>
-
   const isSupermarket = product.store === 'supermarket'
-  const soldOut = isSupermarket && stockLevel(product) === 'out_of_stock'
-  const saved = has(product.id)
+  const soldOut = stockLevel(product) === 'out_of_stock'
   const images = product.images
   const suggestions = related.filter(item => item.id !== product.id).slice(0, 8)
   const lineTotal = formatNaira(product.price * quantity)
@@ -80,20 +81,10 @@ export default function ProductPage({ initialProduct }: { initialProduct?: Produ
     track.scrollTo({ left: index * track.clientWidth, behavior: 'smooth' })
   }
 
-  const handleAdd = () => {
-    addItem({
-      kind: 'product',
-      productId: product.id,
-      name: product.name,
-      image: product.images[0] ?? null,
-      category: product.category,
-      store: product.store,
-      isCombo: product.is_combo,
-      unitPrice: product.price,
-      quantity,
-    })
+  const addToCart = () => {
+    addItem(toCartItem(product, quantity))
     setAdded(true)
-    setTimeout(() => setAdded(false), 1600)
+    setTimeout(() => setAdded(false), ADDED_FEEDBACK_MS)
   }
 
   return (
@@ -113,7 +104,7 @@ export default function ProductPage({ initialProduct }: { initialProduct?: Produ
                 images.map((img, i) => (
                   <div key={i} className="relative aspect-square w-full shrink-0 snap-center">
                     <Image
-                      src={img}
+                      src={cldThumb(img, GALLERY_IMAGE_WIDTH)}
                       alt={i === 0 ? product.name : ''}
                       fill
                       sizes="(max-width: 768px) 100vw, 50vw"
@@ -153,6 +144,7 @@ export default function ProductPage({ initialProduct }: { initialProduct?: Produ
               {images.map((img, i) => (
                 <button
                   key={i}
+                  type="button"
                   onClick={() => scrollToImage(i)}
                   aria-label={`View image ${i + 1}`}
                   className={cn(
@@ -160,7 +152,7 @@ export default function ProductPage({ initialProduct }: { initialProduct?: Produ
                     i === activeImage ? 'border-brand' : 'border-line'
                   )}
                 >
-                  <Image src={img} alt="" fill sizes="64px" className="object-cover" />
+                  <Image src={cldThumb(img, THUMBNAIL_WIDTH)} alt="" fill sizes="64px" className="object-cover" />
                 </button>
               ))}
             </div>
@@ -172,16 +164,19 @@ export default function ProductPage({ initialProduct }: { initialProduct?: Produ
             <h1 className="text-2xl font-bold leading-tight">{product.name}</h1>
             <div className="flex shrink-0 items-center gap-2">
               <button
-                onClick={() => toggle(product.id)}
+                type="button"
+                onClick={() => toggleSaved(product.id)}
                 aria-label={saved ? 'Remove from saved' : 'Save for later'}
-                className="grid h-10 w-10 place-items-center rounded-full border border-line transition-transform active:scale-90"
+                aria-pressed={saved}
+                className="grid h-11 w-11 place-items-center rounded-full border border-line transition-transform active:scale-90"
               >
                 <Heart size={19} className={cn('text-brand', saved && 'fill-brand')} />
               </button>
               <button
+                type="button"
                 onClick={() => share(product)}
                 aria-label="Share this item"
-                className="grid h-10 w-10 place-items-center rounded-full border border-line transition-transform active:scale-90"
+                className="grid h-11 w-11 place-items-center rounded-full border border-line transition-transform active:scale-90"
               >
                 <Share2 size={18} className="text-brand" />
               </button>
@@ -206,7 +201,9 @@ export default function ProductPage({ initialProduct }: { initialProduct?: Produ
                 {product.description}
               </p>
               <button
-                onClick={() => setDescOpen(v => !v)}
+                type="button"
+                onClick={() => setDescOpen(open => !open)}
+                aria-expanded={descOpen}
                 className="mt-1 flex min-h-[44px] items-center gap-1 text-body font-semibold text-brand"
               >
                 {descOpen ? 'Show less' : 'Read more'}
@@ -223,29 +220,36 @@ export default function ProductPage({ initialProduct }: { initialProduct?: Produ
               <span className="text-body font-semibold">Quantity</span>
               <div className="flex h-11 items-center rounded-xl border border-brand">
                 <button
-                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  type="button"
+                  onClick={() => setQuantity(current => Math.max(1, current - 1))}
                   className="grid h-full w-11 place-items-center text-brand active:scale-90"
-                  aria-label="Decrease"
+                  aria-label="Decrease quantity"
                 >
                   <Minus size={17} />
                 </button>
                 <span className="w-10 text-center text-body font-bold text-brand">{quantity}</span>
                 <button
-                  onClick={() => setQuantity(q => q + 1)}
-                  className="grid h-full w-11 place-items-center text-brand active:scale-90"
-                  aria-label="Increase"
+                  type="button"
+                  onClick={() => setQuantity(current => Math.min(MAX_ITEM_QUANTITY, current + 1))}
+                  disabled={quantity >= MAX_ITEM_QUANTITY}
+                  className="grid h-full w-11 place-items-center text-brand active:scale-90 disabled:opacity-40"
+                  aria-label="Increase quantity"
                 >
                   <Plus size={17} />
                 </button>
               </div>
             </div>
 
-            <Button size="lg" fullWidth onClick={handleAdd} disabled={soldOut} className="mt-1">
-              {added
-                ? 'Added to Cart ✓'
-                : soldOut
-                  ? 'Out of Stock'
-                  : `Add to Cart · ${lineTotal}`}
+            <Button size="lg" fullWidth onClick={addToCart} disabled={soldOut} className="mt-1">
+              {added ? (
+                <>
+                  <Check size={18} /> Added to Cart
+                </>
+              ) : soldOut ? (
+                'Out of Stock'
+              ) : (
+                `Add to Cart · ${lineTotal}`
+              )}
             </Button>
           </div>
         </div>
@@ -265,14 +269,20 @@ export default function ProductPage({ initialProduct }: { initialProduct?: Produ
       )}
 
       {showStickyCta && !soldOut && (
-        <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 animate-slide-up border-t border-line bg-white/95 px-4 py-3 shadow-[0_-6px_24px_rgba(26,26,26,0.08)] backdrop-blur md:bottom-0">
+        <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 animate-slide-up border-t border-line bg-white/95 px-4 py-3 shadow-lift backdrop-blur md:bottom-0">
           <div className="mx-auto flex max-w-app items-center gap-3">
             <div className="min-w-0 flex-1">
               <p className="truncate text-body font-semibold">{product.name}</p>
               <p className="text-body font-bold text-brand">{lineTotal}</p>
             </div>
-            <Button size="lg" onClick={handleAdd} className="shrink-0 px-6">
-              {added ? 'Added ✓' : 'Add to Cart'}
+            <Button size="lg" onClick={addToCart} className="shrink-0 px-6">
+              {added ? (
+                <>
+                  <Check size={18} /> Added
+                </>
+              ) : (
+                'Add to Cart'
+              )}
             </Button>
           </div>
         </div>

@@ -1,22 +1,32 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import Image from 'next/image'
-import { Link, useNavigate } from '@/lib/router'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { ArrowRight, Clock, Search, ShoppingBasket, UtensilsCrossed } from 'lucide-react'
 import { useProducts } from '@/hooks/useProducts'
 import { useCategories } from '@/hooks/useCategories'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { ProductCard } from '@/components/product/ProductCard'
 import { HeroCarousel } from '@/components/home/HeroCarousel'
 import { StorePromos } from '@/components/home/StorePromos'
-import type { Product } from '@/lib/types'
+import type { Product, StoreKind } from '@/lib/types'
 import { cldThumb } from '@/lib/image'
 import { cn } from '@/lib/cn'
 
-export default function HomePage() {
-  const { products: featured, loading } = useProducts({ featuredOnly: true, sort: 'rating' })
-  const { products: dishes } = useProducts({ store: 'restaurant', sort: 'rating' })
-  const { products: groceries } = useProducts({ store: 'supermarket', sort: 'rating' })
+const ROW_SIZE = 10
+const HERO_SIZE = 5
+const SUGGESTION_COUNT = 6
+const MIN_SEARCH_LENGTH = 2
+const SEARCH_DEBOUNCE_MS = 250
+const BLUR_GRACE_MS = 120
+
+export default function HomeScreen() {
+  const { products: featured, loading } = useProducts({ featuredOnly: true, sort: 'rating', limit: HERO_SIZE })
+  const { products: dishes } = useProducts({ store: 'restaurant', sort: 'rating', limit: ROW_SIZE })
+  const { products: groceries } = useProducts({ store: 'supermarket', sort: 'rating', limit: ROW_SIZE })
   const { categories } = useCategories()
   const kitchenCategories = categories.filter(category => category.store === 'restaurant')
 
@@ -25,7 +35,7 @@ export default function HomePage() {
   return (
     <div className="flex flex-col gap-6 animate-fade-in">
       <div className="flex flex-col gap-3">
-        <HomeSearch catalog={[...dishes, ...groceries]} />
+        <HomeSearch />
         <TrustRibbon />
       </div>
 
@@ -58,8 +68,8 @@ export default function HomePage() {
             {kitchenCategories.map(category => (
               <Link
                 key={category.slug}
-                to={`/shop?store=restaurant&category=${category.slug}`}
-                className="shrink-0 rounded-full border border-line bg-white px-4 py-2 text-[13px] font-semibold text-ink transition-colors hover:border-brand hover:text-brand"
+                href={`/shop?store=restaurant&category=${category.slug}`}
+                className="flex min-h-[44px] shrink-0 items-center rounded-full border border-line bg-white px-4 text-[13px] font-semibold text-ink transition-colors hover:border-brand hover:text-brand"
               >
                 {category.label}
               </Link>
@@ -68,58 +78,53 @@ export default function HomePage() {
         </section>
       )}
 
-      <ProductRow title="Bestsellers" href="/shop?store=restaurant" products={dishes.slice(0, 10)} />
-      <ProductRow title="Mart Picks" href="/shop?store=supermarket" products={groceries.slice(0, 10)} />
+      <ProductRow title="Bestsellers" href="/shop?store=restaurant" products={dishes} />
+      <ProductRow title="Mart Picks" href="/shop?store=supermarket" products={groceries} />
 
       <StorePromos />
     </div>
   )
 }
 
-function HomeSearch({ catalog }: { catalog: Product[] }) {
-  const navigate = useNavigate()
+function HomeSearch() {
+  const router = useRouter()
   const [query, setQuery] = useState('')
   const [focused, setFocused] = useState(false)
   const blurTimer = useRef<ReturnType<typeof setTimeout>>()
+  const term = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS)
+  const searching = term.length >= MIN_SEARCH_LENGTH
+  const { products: matches } = useProducts({
+    search: term,
+    limit: SUGGESTION_COUNT,
+    sort: 'rating',
+    enabled: searching,
+  })
+  const suggestions = searching ? matches : []
 
-  const suggestions = useMemo(() => {
-    const needle = query.trim().toLowerCase()
-    if (needle.length < 2) return []
-    const seen = new Set<string>()
-    return catalog
-      .filter(product => {
-        if (seen.has(product.id) || !product.name.toLowerCase().includes(needle)) return false
-        seen.add(product.id)
-        return true
-      })
-      .slice(0, 6)
-  }, [catalog, query])
-
-  const goToResults = (term: string, store?: Product['store']) => {
-    const trimmed = term.trim()
+  const goToResults = (searchTerm: string, store?: StoreKind) => {
     const params = new URLSearchParams()
     if (store) params.set('store', store)
-    if (trimmed) params.set('q', trimmed)
-    navigate(`/shop?${params.toString()}`)
+    if (searchTerm.trim()) params.set('q', searchTerm.trim())
+    router.push(`/shop?${params.toString()}`)
   }
 
-  const submit = (event: React.FormEvent) => {
+  const submitSearch = (event: FormEvent) => {
     event.preventDefault()
-    goToResults(query, 'restaurant')
+    goToResults(query)
   }
 
   const showDropdown = focused && suggestions.length > 0
 
   return (
     <div className="relative">
-      <form onSubmit={submit} className="relative">
+      <form onSubmit={submitSearch} role="search" className="relative">
         <Search size={19} className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" />
         <input
           value={query}
-          onChange={e => setQuery(e.target.value)}
+          onChange={event => setQuery(event.target.value)}
           onFocus={() => setFocused(true)}
           onBlur={() => {
-            blurTimer.current = setTimeout(() => setFocused(false), 120)
+            blurTimer.current = setTimeout(() => setFocused(false), BLUR_GRACE_MS)
           }}
           placeholder="Search meals, drinks, groceries…"
           aria-label="Search Belle Food"
@@ -139,7 +144,7 @@ function HomeSearch({ catalog }: { catalog: Product[] }) {
             <li key={product.id}>
               <button
                 type="button"
-                onClick={() => goToResults(product.name, product.store)}
+                onClick={() => goToResults(product.name, product.store === 'supermarket' ? 'supermarket' : 'restaurant')}
                 className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-brand-tint"
               >
                 <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg bg-line/40">
@@ -157,8 +162,8 @@ function HomeSearch({ catalog }: { catalog: Product[] }) {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-body font-medium text-ink">{product.name}</span>
-                  <span className="block text-label capitalize text-ink-muted">
-                    {product.store === 'restaurant' ? 'Meals' : 'Mart'}
+                  <span className="block text-label text-ink-muted">
+                    {product.store === 'supermarket' ? 'Mart' : 'Meals'}
                   </span>
                 </span>
               </button>
@@ -176,7 +181,9 @@ function TrustRibbon() {
       <span className="inline-flex items-center gap-1">
         <Clock size={13} className="text-brand" /> Open 24/7
       </span>
-      <span className="text-line">•</span>
+      <span aria-hidden className="text-line">
+        •
+      </span>
       <span className="inline-flex items-center gap-1">
         <ShoppingBasket size={13} className="text-brand" /> Delivery or Pickup
       </span>
@@ -193,28 +200,26 @@ function StoreTile({
   fallback,
   dark,
 }: {
-  store: 'restaurant' | 'supermarket'
+  store: StoreKind
   eyebrow: string
   title: string
   subtitle: string
   image?: string | null
-  fallback: React.ReactNode
+  fallback: ReactNode
   dark?: boolean
 }) {
   return (
     <Link
-      to={`/shop?store=${store}`}
+      href={`/shop?store=${store}`}
       className={cn(
         'relative flex items-center gap-3 overflow-hidden rounded-3xl p-5 text-white shadow-pop transition-transform active:scale-[0.99]',
-        dark
-          ? 'bg-gradient-to-br from-[#262626] to-[#0d0d0d]'
-          : 'bg-gradient-to-br from-brand to-brand-dark'
+        dark ? 'bg-gradient-to-br from-charcoal to-charcoal-deep' : 'bg-gradient-to-br from-brand to-brand-dark'
       )}
     >
       <span className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full bg-white/5" />
       <div className="relative z-10 min-w-0 flex-1">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">{eyebrow}</p>
-        <h3 className="mt-1 text-2xl font-bold leading-none">{title}</h3>
+        <h3 className="mt-1 text-2xl font-bold leading-none text-white">{title}</h3>
         <p className="mt-1.5 text-sm text-white/80">{subtitle}</p>
         <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-[13px] font-semibold backdrop-blur">
           Explore <ArrowRight size={15} />
@@ -240,7 +245,7 @@ function ProductRow({ title, href, products }: { title: string; href: string; pr
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-lg font-bold">{title}</h2>
         <Link
-          to={href}
+          href={href}
           className="-my-2 flex min-h-[44px] items-center gap-1 text-body font-semibold text-brand"
         >
           View all <ArrowRight size={16} />
@@ -267,8 +272,8 @@ function HomeSkeleton() {
         <div className="h-28 animate-pulse rounded-3xl bg-line/60" />
       </div>
       <div className="flex gap-3">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-60 w-40 animate-pulse rounded-2xl bg-line/60 sm:w-48" />
+        {Array.from({ length: 4 }, (_, index) => (
+          <div key={index} className="h-60 w-40 animate-pulse rounded-2xl bg-line/60 sm:w-48" />
         ))}
       </div>
     </div>

@@ -1,110 +1,152 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Link } from '@/lib/router'
+import Link from 'next/link'
 import { ArrowLeft, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/stores/auth'
 import { useDeliveryZones } from '@/hooks/useDeliveryZones'
 import { Button } from '@/components/ui/Button'
-import { PageSpinner } from '@/components/ui/PageSpinner'
+import { Field, FormError } from '@/components/ui/Field'
+import { PageSpinner } from '@/components/ui/BrandLoader'
 
-export default function AddressPage() {
-  const { session } = useAuth()
+interface AddressForm {
+  fullName: string
+  phone: string
+  street: string
+  zoneId: string
+}
+
+const SAVED_FEEDBACK_MS = 2000
+
+export default function AddressScreen() {
+  const { userId } = useAuth()
   const { zones } = useDeliveryZones()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
   const [addressId, setAddressId] = useState<string | null>(null)
-  const [form, setForm] = useState({ fullName: '', phone: '', street: '', area: '' })
+  const [form, setForm] = useState<AddressForm>({ fullName: '', phone: '', street: '', zoneId: '' })
 
   useEffect(() => {
-    if (!session) return
+    if (!userId) return
     supabase
       .from('user_addresses')
       .select('*')
+      .eq('user_id', userId)
       .eq('is_default', true)
       .limit(1)
       .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          setAddressId(data.id)
+      .then(({ data: address }) => {
+        if (address) {
+          setAddressId(address.id)
           setForm({
-            fullName: data.full_name ?? '',
-            phone: data.phone ?? '',
-            street: data.street ?? '',
-            area: data.city ?? '',
+            fullName: address.full_name,
+            phone: address.phone,
+            street: address.street,
+            zoneId: address.zone_id ?? '',
           })
         }
         setLoading(false)
       })
-  }, [session])
+  }, [userId])
 
   useEffect(() => {
-    if (!form.area && zones.length) setForm(prev => ({ ...prev, area: zones[0].name }))
-  }, [zones, form.area])
+    if (zones.length === 0) return
+    setForm(current =>
+      zones.some(zone => zone.id === current.zoneId) ? current : { ...current, zoneId: zones[0].id }
+    )
+  }, [zones])
 
-  const save = async () => {
-    if (!session) return
+  const updateField = (key: keyof AddressForm) => (value: string) =>
+    setForm(current => ({ ...current, [key]: value }))
+
+  const saveAddress = async () => {
+    if (!userId) return
+    setError('')
     setSaving(true)
+    const zone = zones.find(entry => entry.id === form.zoneId)
     const payload = {
-      user_id: session.user.id,
-      full_name: form.fullName,
-      phone: form.phone,
-      street: form.street,
-      city: form.area,
+      user_id: userId,
+      full_name: form.fullName.trim(),
+      phone: form.phone.trim(),
+      street: form.street.trim(),
+      zone_id: form.zoneId,
+      city: zone?.name ?? '',
       state: 'Lagos',
       is_default: true,
     }
-    if (addressId) {
-      await supabase.from('user_addresses').update(payload).eq('id', addressId)
-    } else {
-      const { data } = await supabase.from('user_addresses').insert(payload).select('id').single()
-      if (data) setAddressId(data.id)
-    }
+    const { data, error: saveError } = addressId
+      ? await supabase.from('user_addresses').update(payload).eq('id', addressId).select('id').single()
+      : await supabase.from('user_addresses').insert(payload).select('id').single()
     setSaving(false)
+    if (saveError || !data) {
+      setError('Your address could not be saved. Please try again.')
+      return
+    }
+    setAddressId(data.id)
     setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    setTimeout(() => setSaved(false), SAVED_FEEDBACK_MS)
   }
-
-  const set = (key: keyof typeof form) => (value: string) => setForm({ ...form, [key]: value })
 
   if (loading) return <PageSpinner />
 
+  const complete = Boolean(form.fullName.trim() && form.phone.trim() && form.street.trim() && form.zoneId)
+
   return (
     <div className="mx-auto flex max-w-app flex-col gap-4">
-      <Link to="/account" className="flex items-center gap-1 text-body font-semibold text-brand">
+      <Link
+        href="/account"
+        className="flex min-h-[44px] items-center gap-1 self-start text-body font-semibold text-brand"
+      >
         <ArrowLeft size={16} /> Account
       </Link>
       <h1 className="text-2xl font-bold">Delivery Address</h1>
       <p className="text-body text-ink-muted">Saved for faster checkout on your next order.</p>
 
       <Field label="Full Name">
-        <input value={form.fullName} onChange={e => set('fullName')(e.target.value)} className="input" />
+        <input
+          value={form.fullName}
+          onChange={event => updateField('fullName')(event.target.value)}
+          autoComplete="name"
+          className="input"
+        />
       </Field>
       <Field label="Phone Number">
-        <input value={form.phone} onChange={e => set('phone')(e.target.value)} className="input" />
+        <input
+          type="tel"
+          value={form.phone}
+          onChange={event => updateField('phone')(event.target.value)}
+          autoComplete="tel"
+          className="input"
+        />
       </Field>
       <Field label="Delivery Area">
-        <select value={form.area} onChange={e => set('area')(e.target.value)} className="input">
+        <select
+          value={form.zoneId}
+          onChange={event => updateField('zoneId')(event.target.value)}
+          className="input"
+        >
           {zones.map(zone => (
-            <option key={zone.id} value={zone.name}>
+            <option key={zone.id} value={zone.id}>
               {zone.name}
             </option>
           ))}
         </select>
       </Field>
       <Field label="Street Address">
-        <input value={form.street} onChange={e => set('street')(e.target.value)} className="input" />
+        <input
+          value={form.street}
+          onChange={event => updateField('street')(event.target.value)}
+          autoComplete="street-address"
+          className="input"
+        />
       </Field>
 
-      <Button
-        size="lg"
-        fullWidth
-        loading={saving}
-        disabled={!form.fullName || !form.phone || !form.street || !form.area}
-        onClick={save}
-      >
+      <FormError message={error} />
+
+      <Button size="lg" fullWidth loading={saving} disabled={!complete} onClick={saveAddress}>
         {saved ? (
           <>
             <Check size={18} /> Saved
@@ -114,14 +156,5 @@ export default function AddressPage() {
         )}
       </Button>
     </div>
-  )
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="flex flex-col gap-1.5">
-      <span className="input-label">{label}</span>
-      {children}
-    </label>
   )
 }

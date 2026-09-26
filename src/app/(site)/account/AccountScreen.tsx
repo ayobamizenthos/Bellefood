@@ -1,6 +1,8 @@
 'use client'
 
-import { Link, useNavigate } from '@/lib/router'
+import type { ReactNode } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   ChevronRight,
   Heart,
@@ -9,6 +11,7 @@ import {
   MessageCircle,
   Package,
   Shield,
+  User,
   Wallet,
 } from 'lucide-react'
 import { useAuth } from '@/stores/auth'
@@ -20,30 +23,34 @@ import { ProductCard } from '@/components/product/ProductCard'
 import { AlertsToggle } from '@/components/settings/AlertsToggle'
 import { RewardsCard } from '@/components/account/RewardsCard'
 
-export default function AccountPage() {
-  const navigate = useNavigate()
+export default function AccountScreen() {
+  const router = useRouter()
   const { session, profile, isAdmin, signOut } = useAuth()
   const { orders } = useOrders()
   const { products: savedProducts } = useSavedProducts()
-  const showSupport = useSupportSheet(s => s.show)
+  const showSupport = useSupportSheet(state => state.show)
 
   const totalSpent = orders
-    .filter(o => o.payment_status === 'verified')
-    .reduce((sum, o) => sum + o.total, 0)
+    .filter(order => order.payment_status === 'verified' && order.status !== 'cancelled')
+    .reduce((sum, order) => sum + Number(order.total), 0)
+  const initial = profile?.full_name?.trim().charAt(0).toUpperCase()
 
-  const handleSignOut = async () => {
+  const signOutToHome = async () => {
     await signOut()
-    navigate('/')
+    router.push('/')
   }
 
   return (
     <div className="mx-auto flex max-w-app flex-col gap-5">
       <section className="flex items-center gap-4 rounded-2xl border border-line bg-white p-4">
-        <span className="grid h-14 w-14 place-items-center rounded-full bg-brand text-xl font-bold text-white">
-          {(profile?.full_name ?? session?.user.email ?? 'Z').charAt(0).toUpperCase()}
+        <span
+          aria-hidden
+          className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-brand text-xl font-bold text-white"
+        >
+          {initial || <User size={26} />}
         </span>
         <div className="min-w-0">
-          <p className="truncate text-lg font-bold">{profile?.full_name ?? 'Belle Food Customer'}</p>
+          <p className="truncate text-lg font-bold">{profile?.full_name || 'Belle Food Customer'}</p>
           <p className="truncate text-body text-ink-muted">{session?.user.email}</p>
           {profile?.phone && <p className="text-body text-ink-muted">{profile.phone}</p>}
         </div>
@@ -67,20 +74,20 @@ export default function AccountPage() {
       </section>
 
       {isAdmin && (
-        <button
-          onClick={() => navigate('/admin')}
+        <Link
+          href="/admin"
           className="flex items-center justify-between rounded-2xl bg-ink p-4 text-white"
         >
           <span className="flex items-center gap-3 font-semibold">
             <Shield size={20} /> Open Admin Dashboard
           </span>
           <ChevronRight size={20} />
-        </button>
+        </Link>
       )}
 
       <RewardsCard />
 
-      <section>
+      <section id="saved-items" className="scroll-mt-20">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-lg font-bold">
             <Heart size={18} className="text-brand" /> Saved Items
@@ -90,7 +97,7 @@ export default function AccountPage() {
         {savedProducts.length === 0 ? (
           <div className="rounded-2xl border border-line bg-white p-6 text-center">
             <p className="text-body text-ink-muted">You have not saved any products yet.</p>
-            <Link to="/shop" className="mt-1 inline-block text-body font-semibold text-brand">
+            <Link href="/shop" className="mt-1 inline-flex min-h-[44px] items-center text-body font-semibold text-brand">
               Browse products
             </Link>
           </div>
@@ -105,51 +112,50 @@ export default function AccountPage() {
         )}
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-line bg-white">
-        <Row
-          icon={<Package size={18} />}
-          label="Order History"
-          onClick={() => navigate('/orders')}
-        />
-        <Row
-          icon={<MapPin size={18} />}
-          label="Delivery Address"
-          onClick={() => navigate('/account/address')}
-        />
-        <Row icon={<MessageCircle size={18} />} label="Contact Support" onClick={showSupport} />
-      </section>
+      <nav aria-label="Account" className="overflow-hidden rounded-2xl border border-line bg-white">
+        <AccountLink icon={<Package size={18} />} label="Order History" href="/orders" />
+        <AccountLink icon={<MapPin size={18} />} label="Delivery Address" href="/account/address" />
+        <button
+          type="button"
+          onClick={showSupport}
+          className="flex w-full items-center justify-between px-4 py-3.5 text-left hover:bg-brand-tint/40"
+        >
+          <AccountLinkLabel icon={<MessageCircle size={18} />} label="Contact Support" />
+        </button>
+      </nav>
 
       <AlertsToggle />
 
       <button
-        onClick={handleSignOut}
-        className="mt-1 flex items-center justify-center gap-2 py-2 text-body font-semibold text-danger transition-opacity active:opacity-60"
+        type="button"
+        onClick={signOutToHome}
+        className="mt-1 flex min-h-[44px] items-center justify-center gap-2 text-body font-semibold text-danger transition-opacity active:opacity-60"
       >
-        <LogOut size={18} /> Logout
+        <LogOut size={18} /> Sign out
       </button>
     </div>
   )
 }
 
-function Row({
-  icon,
-  label,
-  onClick,
-}: {
-  icon: React.ReactNode
-  label: string
-  onClick: () => void
-}) {
+function AccountLinkLabel({ icon, label }: { icon: ReactNode; label: string }) {
   return (
-    <button
-      onClick={onClick}
-      className="flex w-full items-center justify-between border-b border-line px-4 py-3.5 text-left last:border-0 hover:bg-brand-tint/40"
-    >
+    <>
       <span className="flex items-center gap-3 font-medium">
         <span className="text-brand">{icon}</span>
         {label}
       </span>
       <ChevronRight size={18} className="text-ink-muted" />
-    </button>
+    </>
+  )
+}
+
+function AccountLink({ icon, label, href }: { icon: ReactNode; label: string; href: string }) {
+  return (
+    <Link
+      href={href}
+      className="flex w-full items-center justify-between border-b border-line px-4 py-3.5 hover:bg-brand-tint/40"
+    >
+      <AccountLinkLabel icon={icon} label={label} />
+    </Link>
   )
 }

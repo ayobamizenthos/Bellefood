@@ -1,24 +1,17 @@
 'use client'
 
-import { Link } from '@/lib/router'
+import Link from 'next/link'
 import { Package } from 'lucide-react'
 import { useOrders } from '@/hooks/useOrders'
-import { ORDER_STATUS_META } from '@/lib/constants'
-import type { OrderStatus } from '@/lib/constants'
+import { orderItems } from '@/lib/types'
 import { formatDate, formatNaira } from '@/lib/format'
-import { PageSpinner } from '@/components/ui/PageSpinner'
-import { Button } from '@/components/ui/Button'
+import { PAYMENT_STATUS_LABEL } from '@/lib/constants'
+import { PageSpinner } from '@/components/ui/BrandLoader'
+import { buttonClassName } from '@/components/ui/Button'
+import { StatusPill } from '@/components/order/StatusPill'
 import { cn } from '@/lib/cn'
 
-const statusTone: Record<OrderStatus, string> = {
-  pending: 'bg-line text-ink-muted',
-  processing: 'bg-brand-tint text-brand',
-  out_for_delivery: 'bg-brand-tint text-brand',
-  delivered: 'bg-success/10 text-success',
-  completed: 'bg-success/10 text-success',
-}
-
-export default function OrdersPage() {
+export default function OrdersScreen() {
   const { orders, loading } = useOrders()
 
   if (loading) return <PageSpinner />
@@ -29,8 +22,8 @@ export default function OrdersPage() {
         <Package size={40} className="text-ink-muted" />
         <h1 className="text-xl font-bold">No orders yet</h1>
         <p className="text-body text-ink-muted">Your orders and live tracking will appear here.</p>
-        <Link to="/shop">
-          <Button className="mt-2">Start Shopping</Button>
+        <Link href="/shop" className={cn(buttonClassName(), 'mt-2')}>
+          Start Shopping
         </Link>
       </div>
     )
@@ -39,41 +32,41 @@ export default function OrdersPage() {
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-bold">Your Orders</h1>
-      <div className="flex flex-col gap-3">
+      <ul className="flex flex-col gap-3">
         {orders.map(order => {
-          const items = order.items as { name?: string }[]
+          const itemCount = orderItems(order).length
+          const awaitingPayment = order.payment_status !== 'verified' && order.status !== 'cancelled'
           return (
-            <Link
-              key={order.id}
-              to={`/orders/${order.id}`}
-              className="flex flex-col gap-2 rounded-2xl border border-line bg-white p-4 shadow-card transition-colors hover:border-brand"
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-bold">{order.order_number}</span>
-                <span
-                  className={cn(
-                    'rounded-full px-2.5 py-0.5 text-label font-semibold',
-                    statusTone[order.status]
-                  )}
-                >
-                  {ORDER_STATUS_META[order.status].label}
+            <li key={order.id}>
+              <Link
+                href={`/orders/${order.id}`}
+                className="flex flex-col gap-2 rounded-2xl border border-line bg-white p-4 shadow-card transition-colors hover:border-brand"
+              >
+                <span className="flex items-center justify-between">
+                  <span className="font-bold">{order.order_number}</span>
+                  <StatusPill status={order.status} />
                 </span>
-              </div>
-              <p className="text-body text-ink-muted">
-                {formatDate(order.created_at)} · {items.length} item{items.length > 1 ? 's' : ''}
-              </p>
-              <div className="flex items-center justify-between">
-                <span className="text-lg font-bold text-brand">{formatNaira(order.total)}</span>
-                {order.payment_status === 'pending' && (
-                  <span className="text-label font-medium text-ink-muted">
-                    Awaiting payment verification
-                  </span>
-                )}
-              </div>
-            </Link>
+                <span className="text-body text-ink-muted">
+                  {formatDate(order.created_at)} · {itemCount} item{itemCount === 1 ? '' : 's'}
+                </span>
+                <span className="flex items-center justify-between">
+                  <span className="text-lg font-bold text-brand">{formatNaira(order.total)}</span>
+                  {awaitingPayment && (
+                    <span
+                      className={cn(
+                        'text-label font-medium',
+                        order.payment_status === 'failed' ? 'text-danger' : 'text-ink-muted'
+                      )}
+                    >
+                      Payment: {PAYMENT_STATUS_LABEL[order.payment_status]}
+                    </span>
+                  )}
+                </span>
+              </Link>
+            </li>
           )
         })}
-      </div>
+      </ul>
     </div>
   )
 }

@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from '@/lib/router'
+import type { ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Bike,
   Building2,
@@ -11,6 +12,7 @@ import {
   ImageUp,
   Loader2,
   MapPin,
+  Sparkles,
   Store,
   X,
 } from 'lucide-react'
@@ -20,31 +22,47 @@ import { useLoyalty } from '@/hooks/useLoyalty'
 import { useStoreSettings } from '@/hooks/useStoreSettings'
 import { useDeliveryZones } from '@/hooks/useDeliveryZones'
 import { supabase } from '@/lib/supabase'
-import { calculateTotals } from '@/lib/pricing'
-import { cartItemTotal } from '@/lib/types'
+import { calculateTotals, kitchenSubtotal, redeemPoints } from '@/lib/pricing'
+import type { OrderTotals } from '@/lib/pricing'
+import type { FulfilmentMethod } from '@/lib/types'
 import { formatNaira } from '@/lib/format'
+import { copyToClipboard } from '@/lib/text'
+import { payWithPaystack } from '@/lib/paystack'
 import { STORE } from '@/lib/constants'
 import { cn } from '@/lib/cn'
-import { Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { PageSpinner } from '@/components/ui/PageSpinner'
+import { Field, FormError } from '@/components/ui/Field'
+import { PageSpinner } from '@/components/ui/BrandLoader'
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch'
-import { payWithPaystack } from '@/lib/paystack'
+import { SummaryRow, deliveryFeeLabel, rewardsDiscountLabel } from '@/components/order/OrderReceipt'
 
 type Step = 1 | 2
-type Fulfillment = 'delivery' | 'pickup'
 type PaymentMethod = 'paystack' | 'bank_transfer'
 
-export default function CheckoutPage() {
-  const navigate = useNavigate()
-  const { items, clear } = useCart()
-  const { session, profile } = useAuth()
+interface PlacedOrder {
+  id: string
+  order_number: string
+  total: number
+  payment_status: string
+}
+
+const COPIED_FEEDBACK_MS = 1500
+
+/** Order page URL; `notice` carries a message the order page shows once the celebration closes. */
+const placedOrderPath = (orderId: string, notice?: 'unconfirmed') =>
+  `/orders/${orderId}?placed=1${notice ? `&notice=${notice}` : ''}`
+
+export default function CheckoutScreen() {
+  const router = useRouter()
+  const items = useCart(state => state.items)
+  const clearCart = useCart(state => state.clear)
+  const { session, userId, profile } = useAuth()
   const { points, settings: loyalty } = useLoyalty()
   const { settings, loading } = useStoreSettings()
   const { zones } = useDeliveryZones()
 
   const [step, setStep] = useState<Step>(1)
-  const [fulfillment, setFulfillment] = useState<Fulfillment>('delivery')
+  const [fulfilment, setFulfilment] = useState<FulfilmentMethod>('delivery')
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [street, setStreet] = useState('')
@@ -59,139 +77,166 @@ export default function CheckoutPage() {
   const [placing, setPlacing] = useState(false)
   const [usePoints, setUsePoints] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [payError, setPayError] = useState('')
+  const [error, setError] = useState('')
+  const [placedOrder, setPlacedOrder] = useState<PlacedOrder | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const orderPlaced = useRef(false)
+  const leavingForOrder = useRef(false)
+  const prefilled = useRef(false)
 
   useEffect(() => {
-    if (profile?.full_name) setFullName(profile.full_name)
-    if (profile?.phone) setPhone(profile.phone)
-  }, [profile])
+    if (prefilled.current || !userId || !profile) return
+    prefilled.current = true
+    setFullName(current => current || profile.full_name || '')
+    setPhone(current => current || profile.phone || '')
+    supabase
+      .from('user_addresses')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_default', true)
+      .limit(1)
+      .maybeSingle()
+      .then(({ data: address }) => {
+        if (!address) return
+        setFullName(current => current || address.full_name)
+        setPhone(current => current || address.phone)
+        setStreet(current => current || address.street)
+        if (address.zone_id) setZoneId(address.zone_id)
+      })
+  }, [userId, profile])
 
   useEffect(() => {
-    if (!zoneId && zones.length > 0) setZoneId(zones[0].id)
+    if (zones.length === 0) return
+    if (!zones.some(zone => zone.id === zoneId)) setZoneId(zones[0].id)
   }, [zones, zoneId])
 
   useEffect(() => {
-    if (!loading && items.length === 0 && !orderPlaced.current) {
-      navigate('/cart', { replace: true })
-    }
-  }, [loading, items.length, navigate])
+    if (!loading && items.length === 0 && !leavingForOrder.current) router.replace('/cart')
+  }, [loading, items.length, router])
 
   if (loading) return <PageSpinner />
   if (items.length === 0) return null
 
-  const selectedZone = zones.find(zone => zone.id === zoneId)
-  const deliveryFee = fulfillment === 'pickup' ? 0 : Number(selectedZone?.fee ?? 0)
-  const totals = calculateTotals(items, deliveryFee)
-
-  // Points pay for kitchen food + delivery only (never groceries). The server
-  // re-computes and enforces this — these values are for display only.
-  const kitchenSubtotal = items.reduce(
-    (sum, item) => (item.store === 'restaurant' ? sum + cartItemTotal(item) : sum),
-    0
+  const bankDetailsReady = Boolean(
+    settings?.bank_name && settings.bank_account_number && settings.bank_account_name
   )
-  const eligibleForPoints = kitchenSubtotal + totals.deliveryFee
-  const nairaPerPoint = loyalty.naira_per_point || 1
-  const maxRedeemablePoints = Math.min(points, Math.ceil(eligibleForPoints / nairaPerPoint))
-  const pointsToUse = usePoints ? maxRedeemablePoints : 0
-  const pointsDiscount = Math.min(pointsToUse * nairaPerPoint, eligibleForPoints)
-  const potentialDiscount = Math.min(maxRedeemablePoints * nairaPerPoint, eligibleForPoints)
-  const canUsePoints = points > 0 && potentialDiscount > 0
+  const selectedZone = zones.find(zone => zone.id === zoneId)
+  const deliveryFee = fulfilment === 'pickup' ? 0 : Number(selectedZone?.fee ?? 0)
+  const totals = calculateTotals(items, deliveryFee, Number(settings?.free_delivery_threshold ?? Infinity))
+  const pointsEligible = kitchenSubtotal(items) + totals.deliveryFee
+  const available = redeemPoints(points, loyalty.naira_per_point, pointsEligible)
+  const pointsDiscount = usePoints ? available.discount : 0
   const payable = Math.max(0, totals.total - pointsDiscount)
+  const coveredByPoints = payable === 0
 
-  const contactReady = fullName.trim().length > 0 && phone.trim().length > 0
+  const contactReady = fullName.trim().length > 1 && phone.trim().length > 6
   const detailsReady =
-    fulfillment === 'pickup' ? contactReady : contactReady && street.trim().length > 0 && !!zoneId
+    fulfilment === 'pickup' ? contactReady : contactReady && street.trim().length > 0 && Boolean(zoneId)
+  const needsProof = method === 'bank_transfer' && !coveredByPoints
+  const canPlaceOrder = !needsProof || Boolean(proofPath)
 
   const uploadProof = async (file: File) => {
-    if (!session) return
+    if (!userId) return
+    setError('')
     setProofUploading(true)
-    const ext = file.name.split('.').pop() || 'png'
-    const path = `${session.user.id}/${Date.now()}.${ext}`
-    const { error } = await supabase.storage.from('payment-proofs').upload(path, file, {
-      upsert: true,
-      contentType: file.type,
-    })
+    const extension = file.name.split('.').pop() || 'png'
+    const path = `${userId}/${Date.now()}.${extension}`
+    const { error: uploadError } = await supabase.storage
+      .from('payment-proofs')
+      .upload(path, file, { upsert: true, contentType: file.type })
     setProofUploading(false)
-    if (!error) {
-      setProofPath(path)
-      setProofName(file.name)
+    if (uploadError) {
+      setError('Your proof of payment could not be uploaded. Please try again.')
+      return
     }
+    setProofPath(path)
+    setProofName(file.name)
   }
 
-  const canPlaceOrder = method === 'paystack' ? true : Boolean(proofPath)
+  const clearProof = () => {
+    setProofPath('')
+    setProofName('')
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
 
-  const copyAccount = async () => {
+  const copyAccountNumber = async () => {
     if (!settings?.bank_account_number) return
-    await navigator.clipboard.writeText(settings.bank_account_number)
+    if (!(await copyToClipboard(settings.bank_account_number))) return
     setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+    setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS)
+  }
+
+  const openOrder = (orderId: string, notice?: 'unconfirmed') => {
+    leavingForOrder.current = true
+    router.replace(placedOrderPath(orderId, notice))
+    clearCart()
+  }
+
+  const createOrder = async (): Promise<PlacedOrder | null> => {
+    const { data, error: placeError } = await supabase.rpc('place_order', {
+      p_items: items.map(item => ({ product_id: item.productId, quantity: item.quantity })),
+      p_delivery_method: fulfilment,
+      p_zone_id: fulfilment === 'delivery' ? zoneId : undefined,
+      p_payment_method: method,
+      p_points: usePoints ? points : 0,
+      p_full_name: fullName.trim(),
+      p_phone: phone.trim(),
+      p_street: fulfilment === 'delivery' ? street.trim() : undefined,
+      p_landmark: fulfilment === 'delivery' ? landmark.trim() || undefined : undefined,
+      p_note: note.trim() || undefined,
+      p_bank_reference: method === 'bank_transfer' ? bankReference.trim() || undefined : undefined,
+      p_payment_proof_url: method === 'bank_transfer' ? proofPath || undefined : undefined,
+    })
+    if (placeError || !data) return null
+    // place_order returns this exact object; the generated types only know it as Json.
+    return data as unknown as PlacedOrder
+  }
+
+  const payForOrder = async (order: PlacedOrder) => {
+    const receipt = await payWithPaystack({
+      email: session?.user.email ?? '',
+      amountNaira: Number(order.total),
+      reference: order.order_number,
+      orderId: order.id,
+    })
+    if (!receipt) {
+      setError('Payment was cancelled. Your order is saved, so you can try paying again.')
+      return
+    }
+    const { data: verification } = await supabase.functions.invoke<{ ok: boolean }>('paystack-verify', {
+      body: { reference: receipt.reference, orderId: order.id },
+    })
+    openOrder(order.id, verification?.ok ? undefined : 'unconfirmed')
   }
 
   const placeOrder = async () => {
-    if (!session) return
+    setError('')
     setPlacing(true)
-    const { data, error } = await supabase.rpc('place_order', {
-      p_items: items.map(item => ({ product_id: item.productId, quantity: item.quantity })),
-      p_delivery_method: fulfillment,
-      p_zone_id: fulfillment === 'delivery' ? zoneId : undefined,
-      p_payment_method: method,
-      p_points: pointsToUse,
-      p_full_name: fullName,
-      p_phone: phone,
-      p_street: fulfillment === 'delivery' ? street : undefined,
-      p_landmark: fulfillment === 'delivery' ? landmark : undefined,
-      p_note: note || undefined,
-      p_bank_reference: method === 'bank_transfer' ? bankReference || undefined : undefined,
-      p_payment_proof_url: method === 'bank_transfer' ? proofPath || undefined : undefined,
-    })
-
-    const order = data as { id: string; order_number: string; total: number } | null
-    if (error || !order) {
-      setPlacing(false)
-      setPayError('Could not create your order. Please try again.')
-      return
-    }
-
-    if (method === 'bank_transfer') {
-      setPlacing(false)
-      orderPlaced.current = true
-      navigate(`/orders/${order.id}?placed=1`, { replace: true })
-      clear()
-      return
-    }
-
     try {
-      const result = await payWithPaystack({
-        email: session.user.email ?? '',
-        amountNaira: order.total,
-        reference: order.order_number,
-        orderId: order.id,
-      })
-
-      if (!result) {
-        setPlacing(false)
-        setPayError('Payment was cancelled. Your order is saved as pending.')
+      const order = placedOrder ?? (await createOrder())
+      if (!order) {
+        setError('Could not create your order. Please check your details and try again.')
         return
       }
-
-      const { data: verified } = await supabase.functions.invoke('paystack-verify', {
-        body: { reference: result.reference, orderId: order.id },
-      })
-
-      setPlacing(false)
-      orderPlaced.current = true
-      if (!verified?.ok) {
-        setPayError('Payment received but not yet confirmed. We will verify it shortly.')
+      setPlacedOrder(order)
+      if (order.payment_status === 'verified' || method === 'bank_transfer') {
+        openOrder(order.id)
+        return
       }
-      navigate(`/orders/${order.id}?placed=1`, { replace: true })
-      clear()
+      await payForOrder(order)
     } catch {
+      setError('Payment could not start. Please try again or pay by bank transfer.')
+    } finally {
       setPlacing(false)
-      setPayError('Payment could not start. Please try again or use bank transfer.')
     }
   }
+
+  const payButtonLabel = coveredByPoints
+    ? 'Place order'
+    : placedOrder
+      ? `Retry payment of ${formatNaira(Number(placedOrder.total))}`
+      : method === 'paystack'
+        ? `Pay ${formatNaira(payable)}`
+        : 'I have made the transfer'
 
   return (
     <div className="mx-auto flex max-w-app flex-col gap-5">
@@ -202,70 +247,82 @@ export default function CheckoutPage() {
           <h1 className="text-xl font-bold">How would you like your order?</h1>
 
           <div className="grid grid-cols-2 gap-3">
-            <FulfillmentCard
-              active={fulfillment === 'delivery'}
-              onClick={() => setFulfillment('delivery')}
+            <FulfilmentCard
+              active={fulfilment === 'delivery'}
+              onSelect={() => setFulfilment('delivery')}
               icon={<Bike size={22} />}
               title="Delivery"
               subtitle="To your address"
             />
-            <FulfillmentCard
-              active={fulfillment === 'pickup'}
-              onClick={() => setFulfillment('pickup')}
+            <FulfilmentCard
+              active={fulfilment === 'pickup'}
+              onSelect={() => setFulfilment('pickup')}
               icon={<Store size={22} />}
               title="Pickup"
               subtitle="Collect at our store"
             />
           </div>
 
-          <Input label="Full Name" value={fullName} onChange={setFullName} />
-          <Input label="Phone Number" value={phone} onChange={setPhone} />
+          <Field label="Full Name">
+            <input
+              value={fullName}
+              onChange={event => setFullName(event.target.value)}
+              autoComplete="name"
+              className="input"
+            />
+          </Field>
+          <Field label="Phone Number">
+            <input
+              type="tel"
+              value={phone}
+              onChange={event => setPhone(event.target.value)}
+              autoComplete="tel"
+              className="input"
+            />
+          </Field>
 
-          {fulfillment === 'delivery' ? (
+          {fulfilment === 'delivery' ? (
             <>
-              <label className="flex flex-col gap-1.5">
-                <span className="input-label">Delivery Area</span>
-                <select
-                  value={zoneId}
-                  onChange={e => setZoneId(e.target.value)}
-                  className="input"
-                >
+              <Field label="Delivery Area">
+                <select value={zoneId} onChange={event => setZoneId(event.target.value)} className="input">
                   {zones.map(zone => (
                     <option key={zone.id} value={zone.id}>
                       {zone.name} ({formatNaira(Number(zone.fee))})
                     </option>
                   ))}
                 </select>
-              </label>
-              <Input label="Street Address" value={street} onChange={setStreet} />
-              <Input
-                label="Landmark (optional)"
-                value={landmark}
-                onChange={setLandmark}
-                placeholder="Nearest bus stop or building"
-              />
+              </Field>
+              <Field label="Street Address">
+                <input
+                  value={street}
+                  onChange={event => setStreet(event.target.value)}
+                  autoComplete="street-address"
+                  className="input"
+                />
+              </Field>
+              <Field label="Landmark (optional)">
+                <input
+                  value={landmark}
+                  onChange={event => setLandmark(event.target.value)}
+                  placeholder="Nearest bus stop or building"
+                  className="input"
+                />
+              </Field>
             </>
           ) : (
-            <div className="flex items-start gap-3 rounded-2xl border border-brand bg-brand-tint p-4">
-              <MapPin size={20} className="mt-0.5 shrink-0 text-brand" />
-              <div>
-                <p className="font-semibold">Pickup at Belle Food</p>
-                <p className="text-body text-ink-muted">{STORE.address}</p>
-                <p className="mt-1 text-body font-medium text-brand">{STORE.hours}</p>
-              </div>
-            </div>
+            <PickupNotice />
           )}
 
-          <label className="flex flex-col gap-1.5">
-            <span className="input-label">Note for the kitchen (optional)</span>
+          <Field label="Note for the kitchen (optional)">
             <textarea
               value={note}
-              onChange={e => setNote(e.target.value)}
+              onChange={event => setNote(event.target.value)}
               rows={3}
+              maxLength={500}
               placeholder="Extra instructions, allergies, or anything we should know"
               className="w-full rounded-xl border border-line bg-white p-3 text-body outline-none focus:border-brand"
             />
-          </label>
+          </Field>
 
           <Button size="lg" fullWidth disabled={!detailsReady} onClick={() => setStep(2)}>
             Continue to Payment
@@ -277,153 +334,141 @@ export default function CheckoutPage() {
         <section className="flex flex-col gap-4">
           <h1 className="text-xl font-bold">Payment</h1>
 
-          <div className="flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={() => setMethod('paystack')}
-              className={cn(
-                'flex items-center gap-3 rounded-2xl border p-4 text-left transition-colors',
-                method === 'paystack' ? 'border-brand bg-brand-tint' : 'border-line'
-              )}
-            >
-              <span className="text-brand">
-                <CreditCard size={20} />
-              </span>
-              <div className="flex-1">
-                <p className="font-semibold">Pay Now (Card, Transfer, USSD)</p>
-                <p className="text-body text-ink-muted">
-                  Secure payment via Paystack. Order confirmed instantly.
-                </p>
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={() => setMethod('bank_transfer')}
-              className={cn(
-                'flex items-center gap-3 rounded-2xl border p-4 text-left transition-colors',
-                method === 'bank_transfer' ? 'border-brand bg-brand-tint' : 'border-line'
-              )}
-            >
-              <span className="text-brand">
-                <Building2 size={20} />
-              </span>
-              <div className="flex-1">
-                <p className="font-semibold">Direct Bank Transfer</p>
-                <p className="text-body text-ink-muted">
-                  Transfer manually and upload your proof of payment.
-                </p>
-              </div>
-            </button>
-          </div>
+          {placedOrder && (
+            <p className="rounded-xl bg-brand-tint px-4 py-3 text-body text-brand">
+              Order {placedOrder.order_number} is saved. Retrying uses the same order, so you are
+              never charged twice.
+            </p>
+          )}
 
-          {method === 'bank_transfer' && (
-            <div className="flex flex-col gap-3 rounded-2xl border border-line bg-white p-4">
-              <div className="flex items-center gap-2 text-brand">
-                <Building2 size={20} />
-                <span className="font-semibold">Transfer to:</span>
-              </div>
-              <Detail label="Account Name" value={settings?.bank_account_name ?? 'Belle Food'} />
-              <Detail label="Bank" value={settings?.bank_name ?? 'Not yet configured'} />
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-label text-ink-muted">Account Number</p>
-                  <p className="font-semibold">
-                    {settings?.bank_account_number ?? 'Not yet configured'}
-                  </p>
-                </div>
-                <button
-                  onClick={copyAccount}
-                  className="flex items-center gap-1 text-body font-semibold text-brand"
-                >
-                  {copied ? <Check size={16} /> : <Copy size={16} />}
-                  {copied ? 'Copied' : 'Copy'}
-                </button>
-              </div>
-              <div className="flex items-baseline justify-between border-t border-line pt-3">
-                <span className="font-semibold">Amount to transfer</span>
-                <span className="text-2xl font-bold text-brand">{formatNaira(payable)}</span>
-              </div>
+          {!coveredByPoints && (
+            <div className="flex flex-col gap-2">
+              <PaymentOption
+                active={method === 'paystack'}
+                disabled={Boolean(placedOrder)}
+                onSelect={() => setMethod('paystack')}
+                icon={<CreditCard size={20} />}
+                title="Pay Now (Card, Transfer, USSD)"
+                detail="Secure payment via Paystack. Confirmed as soon as payment succeeds."
+              />
+              <PaymentOption
+                active={method === 'bank_transfer'}
+                disabled={Boolean(placedOrder) || !bankDetailsReady}
+                onSelect={() => setMethod('bank_transfer')}
+                icon={<Building2 size={20} />}
+                title="Direct Bank Transfer"
+                detail={
+                  bankDetailsReady
+                    ? 'Transfer manually and upload your proof of payment.'
+                    : 'Bank transfer is unavailable right now. Please pay online.'
+                }
+              />
             </div>
           )}
 
-          {method === 'bank_transfer' && (
-            <div className="rounded-2xl border border-line bg-white p-4">
-              <p className="mb-1 font-semibold">
-                Upload proof of payment <span className="text-danger">*</span>
-              </p>
-              <p className="mb-3 text-body text-ink-muted">
-                A screenshot, photo, or PDF of your transfer is required to place the order.
-              </p>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*,application/pdf"
-                aria-label="Proof of payment"
-                className="hidden"
-                onChange={e => {
-                  const file = e.target.files?.[0]
-                  if (file) uploadProof(file)
-                }}
-              />
-
-              {proofPath ? (
-                <div className="mb-3 flex items-center gap-3 rounded-xl border border-success/40 bg-success/10 p-3">
-                  <Check size={18} className="shrink-0 text-success" />
-                  <span className="min-w-0 flex-1 truncate text-body font-medium">{proofName}</span>
+          {needsProof && settings && (
+            <>
+              <div className="flex flex-col gap-3 rounded-2xl border border-line bg-white p-4">
+                <div className="flex items-center gap-2 text-brand">
+                  <Building2 size={20} />
+                  <span className="font-semibold">Transfer to:</span>
+                </div>
+                <Detail label="Account Name" value={settings.bank_account_name ?? ''} />
+                <Detail label="Bank" value={settings.bank_name ?? ''} />
+                <div className="flex items-center justify-between">
+                  <Detail label="Account Number" value={settings.bank_account_number ?? ''} />
                   <button
                     type="button"
-                    onClick={() => {
-                      setProofPath('')
-                      setProofName('')
-                      if (fileInputRef.current) fileInputRef.current.value = ''
-                    }}
-                    aria-label="Remove file"
-                    className="shrink-0 text-ink-muted"
+                    onClick={copyAccountNumber}
+                    className="flex min-h-[44px] items-center gap-1 px-2 text-body font-semibold text-brand"
                   >
-                    <X size={18} />
+                    {copied ? <Check size={16} /> : <Copy size={16} />}
+                    {copied ? 'Copied' : 'Copy'}
                   </button>
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={proofUploading}
-                  className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-brand/50 bg-brand-tint/60 py-4 font-semibold text-brand"
-                >
-                  {proofUploading ? (
-                    <>
-                      <Loader2 size={18} className="animate-spin" /> Uploading…
-                    </>
-                  ) : (
-                    <>
-                      <ImageUp size={18} /> Upload proof of payment
-                    </>
-                  )}
-                </button>
-              )}
+                <div className="flex items-baseline justify-between border-t border-line pt-3">
+                  <span className="font-semibold">Amount to transfer</span>
+                  <span className="text-2xl font-bold text-brand">{formatNaira(payable)}</span>
+                </div>
+              </div>
 
-              <Input
-                label="Transfer reference (optional)"
-                value={bankReference}
-                onChange={setBankReference}
-                placeholder="Your name or transaction ID"
-              />
-            </div>
+              <div className="rounded-2xl border border-line bg-white p-4">
+                <p className="mb-1 font-semibold">
+                  Upload proof of payment <span className="text-danger">*</span>
+                </p>
+                <p className="mb-3 text-body text-ink-muted">
+                  A screenshot, photo, or PDF of your transfer is required to place the order.
+                </p>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,application/pdf"
+                  aria-label="Proof of payment"
+                  className="hidden"
+                  onChange={event => {
+                    const file = event.target.files?.[0]
+                    if (file) void uploadProof(file)
+                  }}
+                />
+
+                {proofPath ? (
+                  <div className="mb-3 flex items-center gap-3 rounded-xl border border-success/40 bg-success/10 pl-3">
+                    <Check size={18} className="shrink-0 text-success" />
+                    <span className="min-w-0 flex-1 truncate text-body font-medium">{proofName}</span>
+                    <button
+                      type="button"
+                      onClick={clearProof}
+                      aria-label="Remove file"
+                      className="grid h-11 w-11 shrink-0 place-items-center text-ink-muted"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={proofUploading}
+                    className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-brand/50 bg-brand-tint/60 py-4 font-semibold text-brand"
+                  >
+                    {proofUploading ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" /> Uploading…
+                      </>
+                    ) : (
+                      <>
+                        <ImageUp size={18} /> Upload proof of payment
+                      </>
+                    )}
+                  </button>
+                )}
+
+                <Field label="Transfer reference (optional)">
+                  <input
+                    value={bankReference}
+                    onChange={event => setBankReference(event.target.value)}
+                    placeholder="Your name or transaction ID"
+                    maxLength={80}
+                    className="input"
+                  />
+                </Field>
+              </div>
+            </>
           )}
 
           <div className="rounded-xl bg-brand-tint px-4 py-3 text-body text-brand">
-            {method === 'paystack'
-              ? 'You will be redirected to a secure Paystack window. Your order is confirmed the moment payment succeeds.'
-              : 'Your order will be confirmed once we verify your payment, usually within a few minutes.'}
+            {coveredByPoints
+              ? 'Your points cover this order, so there is nothing to pay.'
+              : method === 'paystack'
+                ? 'A secure Paystack window opens next. Your order is confirmed as soon as payment succeeds.'
+                : 'Your order will be confirmed once we verify your payment, usually within a few minutes.'}
           </div>
 
-          {canUsePoints && (
-            <button
-              type="button"
-              onClick={() => setUsePoints(v => !v)}
+          {available.discount > 0 && !placedOrder && (
+            <div
               className={cn(
-                'flex items-center gap-3 rounded-2xl border p-4 text-left transition-colors',
+                'flex items-center gap-3 rounded-2xl border p-4 transition-colors',
                 usePoints ? 'border-brand bg-brand-tint' : 'border-line'
               )}
             >
@@ -433,28 +478,32 @@ export default function CheckoutPage() {
               <div className="flex-1">
                 <p className="font-semibold">Use Belle Rewards</p>
                 <p className="text-body text-ink-muted">
-                  {points.toLocaleString()} points available — {formatNaira(potentialDiscount)} off
+                  {points.toLocaleString()} points available: {formatNaira(available.discount)} off
                   food &amp; delivery.
                 </p>
               </div>
-              <ToggleSwitch checked={usePoints} onChange={() => setUsePoints(v => !v)} label="Use points" />
-            </button>
+              <ToggleSwitch checked={usePoints} onChange={setUsePoints} label="Use Belle Rewards points" />
+            </div>
           )}
 
           <OrderSummary
             totals={totals}
-            fulfillment={fulfillment}
+            fulfilment={fulfilment}
             zoneName={selectedZone?.name ?? ''}
             pointsDiscount={pointsDiscount}
             payable={payable}
           />
 
-          {payError && (
-            <p className="rounded-lg bg-danger/10 px-3 py-2 text-body text-danger">{payError}</p>
-          )}
+          <FormError message={error} />
 
           <div className="flex gap-3">
-            <Button size="lg" variant="secondary" onClick={() => setStep(1)} className="flex-1">
+            <Button
+              size="lg"
+              variant="secondary"
+              onClick={() => setStep(1)}
+              disabled={Boolean(placedOrder)}
+              className="flex-1"
+            >
               Back
             </Button>
             <Button
@@ -464,9 +513,7 @@ export default function CheckoutPage() {
               disabled={!canPlaceOrder}
               className="flex-[2]"
             >
-              {method === 'paystack'
-                ? `Pay ${formatNaira(payable)}`
-                : 'I have made the transfer'}
+              {payButtonLabel}
             </Button>
           </div>
           {!canPlaceOrder && (
@@ -480,65 +527,72 @@ export default function CheckoutPage() {
   )
 }
 
+function PickupNotice() {
+  return (
+    <div className="flex items-start gap-3 rounded-2xl border border-brand bg-brand-tint p-4">
+      <MapPin size={20} className="mt-0.5 shrink-0 text-brand" />
+      <div>
+        <p className="font-semibold">Pickup at Belle Food</p>
+        <p className="text-body text-ink-muted">{STORE.address}</p>
+        <p className="mt-1 text-body font-medium text-brand">{STORE.hours}</p>
+      </div>
+    </div>
+  )
+}
+
 function StepIndicator({ step }: { step: Step }) {
   const labels = ['Details', 'Payment']
   return (
-    <div className="flex items-center gap-2">
-      {labels.map((label, i) => {
-        const n = (i + 1) as Step
-        const done = step > n
-        const active = step === n
+    <ol className="flex items-center gap-2">
+      {labels.map((label, index) => {
+        const position = index + 1
+        const done = step > position
+        const active = step === position
         return (
-          <div key={label} className="flex flex-1 items-center gap-2">
-            <div
+          <li
+            key={label}
+            aria-current={active ? 'step' : undefined}
+            className="flex flex-1 items-center gap-2"
+          >
+            <span
               className={cn(
                 'grid h-7 w-7 place-items-center rounded-full text-label font-bold',
                 active ? 'bg-brand text-white' : done ? 'bg-success text-white' : 'bg-line text-ink-muted'
               )}
             >
-              {done ? <Check size={14} /> : n}
-            </div>
+              {done ? <Check size={14} /> : position}
+            </span>
             <span className={cn('text-body font-medium', active ? 'text-ink' : 'text-ink-muted')}>
               {label}
             </span>
-          </div>
+          </li>
         )
       })}
-    </div>
+    </ol>
   )
 }
 
 function OrderSummary({
   totals,
-  fulfillment,
+  fulfilment,
   zoneName,
   pointsDiscount,
   payable,
 }: {
-  totals: ReturnType<typeof calculateTotals>
-  fulfillment: Fulfillment
+  totals: OrderTotals
+  fulfilment: FulfilmentMethod
   zoneName: string
   pointsDiscount: number
   payable: number
 }) {
+  const deliveryLabel =
+    fulfilment === 'pickup' ? 'Pickup' : `Delivery${zoneName ? ` (${zoneName})` : ''}`
   return (
     <div className="rounded-2xl border border-line bg-white p-4 text-body">
-      <Row label="Subtotal" value={formatNaira(totals.subtotal)} />
-      <Row
-        label={fulfillment === 'pickup' ? 'Pickup' : `Delivery${zoneName ? ` (${zoneName})` : ''}`}
-        value={
-          fulfillment === 'pickup'
-            ? 'Free'
-            : totals.deliveryFee === 0
-              ? 'Free'
-              : formatNaira(totals.deliveryFee)
-        }
-      />
+      <SummaryRow label="Subtotal" value={formatNaira(totals.subtotal)} />
+      <SummaryRow label={deliveryLabel} value={deliveryFeeLabel(totals.deliveryFee)} />
       {pointsDiscount > 0 && (
-        <div className="flex justify-between py-0.5 text-success">
-          <span>Belle Rewards</span>
-          <span className="font-semibold">− {formatNaira(pointsDiscount)}</span>
-        </div>
+        <SummaryRow label="Belle Rewards" value={rewardsDiscountLabel(pointsDiscount)} tone="reward" />
       )}
       <div className="mt-2 flex items-baseline justify-between border-t border-line pt-2">
         <span className="font-semibold">Total</span>
@@ -548,23 +602,24 @@ function OrderSummary({
   )
 }
 
-function FulfillmentCard({
+function FulfilmentCard({
   active,
-  onClick,
+  onSelect,
   icon,
   title,
   subtitle,
 }: {
   active: boolean
-  onClick: () => void
-  icon: React.ReactNode
+  onSelect: () => void
+  icon: ReactNode
   title: string
   subtitle: string
 }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={onSelect}
+      aria-pressed={active}
       className={cn(
         'flex flex-col items-start gap-2 rounded-2xl border p-4 text-left transition-colors',
         active ? 'border-brand bg-brand-tint' : 'border-line bg-white'
@@ -578,20 +633,46 @@ function FulfillmentCard({
       >
         {icon}
       </span>
-      <div>
-        <p className="font-bold leading-tight">{title}</p>
-        <p className="text-label text-ink-muted">{subtitle}</p>
-      </div>
+      <span>
+        <span className="block font-bold leading-tight">{title}</span>
+        <span className="block text-label text-ink-muted">{subtitle}</span>
+      </span>
     </button>
   )
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function PaymentOption({
+  active,
+  disabled,
+  onSelect,
+  icon,
+  title,
+  detail,
+}: {
+  active: boolean
+  disabled: boolean
+  onSelect: () => void
+  icon: ReactNode
+  title: string
+  detail: string
+}) {
   return (
-    <div className="flex justify-between py-0.5">
-      <span className="text-ink-muted">{label}</span>
-      <span className="font-semibold">{value}</span>
-    </div>
+    <button
+      type="button"
+      onClick={onSelect}
+      disabled={disabled}
+      aria-pressed={active}
+      className={cn(
+        'flex items-center gap-3 rounded-2xl border p-4 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60',
+        active ? 'border-brand bg-brand-tint' : 'border-line'
+      )}
+    >
+      <span className="text-brand">{icon}</span>
+      <span className="flex-1">
+        <span className="block font-semibold">{title}</span>
+        <span className="block text-body text-ink-muted">{detail}</span>
+      </span>
+    </button>
   )
 }
 
@@ -601,29 +682,5 @@ function Detail({ label, value }: { label: string; value: string }) {
       <p className="text-label text-ink-muted">{label}</p>
       <p className="font-semibold">{value}</p>
     </div>
-  )
-}
-
-function Input({
-  label,
-  value,
-  onChange,
-  placeholder,
-}: {
-  label: string
-  value: string
-  onChange: (value: string) => void
-  placeholder?: string
-}) {
-  return (
-    <label className="flex flex-col gap-1.5">
-      <span className="input-label">{label}</span>
-      <input
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="input"
-      />
-    </label>
   )
 }

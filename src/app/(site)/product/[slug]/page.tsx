@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { createPublicClient } from '@/lib/supabase-public'
+import { createPublicClient } from '@/lib/supabase'
 import { SITE } from '@/lib/site'
 import type { Product } from '@/lib/types'
 import ProductScreen from './ProductScreen'

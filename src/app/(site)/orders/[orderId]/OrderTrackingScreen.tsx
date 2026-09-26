@@ -1,46 +1,64 @@
 'use client'
 
 import { useState } from 'react'
-import { Link, useParams, useSearchParams } from '@/lib/router'
-import { MessageCircle } from 'lucide-react'
+import Link from 'next/link'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { ArrowLeft, BadgeCheck, CircleX, MessageCircle } from 'lucide-react'
 import { OrderPlacedCelebration } from '@/components/order/OrderPlacedCelebration'
+import { OrderReceipt } from '@/components/order/OrderReceipt'
+import { StatusTimeline } from '@/components/order/StatusTimeline'
 import { useOrder } from '@/hooks/useOrders'
 import { useSupportSheet } from '@/stores/support'
-import { formatNaira } from '@/lib/format'
-import { PageSpinner } from '@/components/ui/PageSpinner'
+import { PAYMENT_STATUS_LABEL, STORE } from '@/lib/constants'
+import { orderAddress } from '@/lib/types'
+import type { Order } from '@/lib/types'
+import { PageSpinner } from '@/components/ui/BrandLoader'
 import { Button } from '@/components/ui/Button'
-import { StatusTimeline } from '@/components/order/StatusTimeline'
-import type { CartItem } from '@/lib/types'
-import { cartItemTotal } from '@/lib/types'
+import { FormError } from '@/components/ui/Field'
+import { cn } from '@/lib/cn'
 
-export default function OrderTrackingPage() {
-  const { orderId } = useParams()
-  const [params] = useSearchParams()
+function celebrationMessage(order: Order, isPickup: boolean): string {
+  if (order.payment_status === 'verified') {
+    return isPickup
+      ? 'We will let you know as soon as it is ready to collect.'
+      : 'We are preparing it now and will tell you when it is on its way.'
+  }
+  return 'We will notify you the moment your payment is confirmed.'
+}
+
+export default function OrderTrackingScreen({ orderId }: { orderId: string }) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const params = useSearchParams()
   const { order, log, loading, confirmReceipt } = useOrder(orderId)
-  const showSupport = useSupportSheet(s => s.show)
+  const showSupport = useSupportSheet(state => state.show)
   const [confirming, setConfirming] = useState(false)
+  const [confirmError, setConfirmError] = useState('')
   const [celebrated, setCelebrated] = useState(false)
   const justPlaced = params.get('placed') === '1' && !celebrated
+  const paymentUnconfirmed = params.get('notice') === 'unconfirmed'
 
   if (loading) return <PageSpinner />
   if (!order) return <p className="py-16 text-center">Order not found.</p>
 
-  const items = order.items as unknown as CartItem[]
-  const address = order.delivery_address as {
-    method?: string
-    fullName?: string
-    phone?: string
-    street?: string
-    landmark?: string
-    zone?: string
-    location?: string
-  }
+  const address = orderAddress(order)
   const isPickup = order.delivery_method === 'pickup'
+  const cancelled = order.status === 'cancelled'
+  const awaitingReceipt =
+    order.payment_status === 'verified' &&
+    (order.status === 'out_for_delivery' || order.status === 'delivered')
 
-  const handleConfirm = async () => {
+  const closeCelebration = () => {
+    setCelebrated(true)
+    router.replace(pathname)
+  }
+
+  const confirmArrival = async () => {
+    setConfirmError('')
     setConfirming(true)
-    await confirmReceipt()
+    const confirmed = await confirmReceipt()
     setConfirming(false)
+    if (!confirmed) setConfirmError('We could not record that. Please try again.')
   }
 
   return (
@@ -48,67 +66,73 @@ export default function OrderTrackingPage() {
       {justPlaced && (
         <OrderPlacedCelebration
           orderNumber={order.order_number}
-          isPickup={isPickup}
-          onDismiss={() => setCelebrated(true)}
+          message={celebrationMessage(order, isPickup)}
+          onDismiss={closeCelebration}
         />
       )}
 
       <div>
         <h1 className="text-2xl font-bold">{order.order_number}</h1>
-        <p className="text-body text-ink-muted">
-          Payment: {order.payment_status === 'verified' ? 'Verified ✓' : 'Awaiting verification'}
+        <p
+          className={cn(
+            'flex items-center gap-1 text-body',
+            order.payment_status === 'verified'
+              ? 'text-success'
+              : order.payment_status === 'failed'
+                ? 'text-danger'
+                : 'text-ink-muted'
+          )}
+        >
+          {order.payment_status === 'verified' && <BadgeCheck size={16} />}
+          Payment: {PAYMENT_STATUS_LABEL[order.payment_status]}
         </p>
       </div>
 
-      <section className="rounded-2xl border border-line bg-white p-4">
-        <h2 className="mb-4 font-bold">Order Status</h2>
-        <StatusTimeline current={order.status} log={log} isPickup={isPickup} />
-      </section>
+      {paymentUnconfirmed && order.payment_status === 'pending' && (
+        <p className="rounded-xl bg-brand-tint px-4 py-3 text-body text-brand">
+          Your payment went through but is not confirmed yet. We will confirm it shortly; there is
+          no need to pay again.
+        </p>
+      )}
 
-      {order.status === 'out_for_delivery' && (
+      {cancelled ? (
+        <section className="flex items-start gap-3 rounded-2xl border border-danger/30 bg-danger/10 p-4 text-danger">
+          <CircleX size={20} className="mt-0.5 shrink-0" />
+          <div>
+            <p className="font-semibold">This order was cancelled</p>
+            {order.cancel_reason && <p className="text-body">{order.cancel_reason}</p>}
+            {order.points_redeemed > 0 && (
+              <p className="text-body">The points you used are back in your balance.</p>
+            )}
+          </div>
+        </section>
+      ) : (
+        <section className="rounded-2xl border border-line bg-white p-4">
+          <h2 className="mb-4 font-bold">Order Status</h2>
+          <StatusTimeline current={order.status} log={log} isPickup={isPickup} />
+        </section>
+      )}
+
+      {awaitingReceipt && (
         <div className="rounded-2xl border border-brand bg-brand-tint p-4">
           <p className="mb-3 font-semibold text-brand">
             {isPickup ? 'Have you picked up your order?' : 'Has your order arrived?'}
           </p>
-          <Button fullWidth loading={confirming} onClick={handleConfirm}>
+          <Button fullWidth loading={confirming} onClick={confirmArrival}>
             {isPickup ? 'Confirm Pickup' : 'Confirm Receipt'}
           </Button>
+          <div className="mt-2">
+            <FormError message={confirmError} />
+          </div>
         </div>
       )}
       {order.status === 'completed' && (
         <p className="rounded-xl bg-success/10 px-4 py-3 text-body font-medium text-success">
-          {isPickup ? 'Picked up — thank you!' : 'Delivered — thank you!'} Your order is complete.
+          {isPickup ? 'Picked up. Thank you!' : 'Delivered. Thank you!'} Your order is complete.
         </p>
       )}
 
-      <section className="rounded-2xl border border-line bg-white p-4">
-        <h2 className="mb-3 font-bold">Items</h2>
-        <div className="flex flex-col gap-2">
-          {items.map((item, i) => (
-            <div key={i} className="flex justify-between text-body">
-              <span className="text-ink-muted">
-                {item.name}
-                {` × ${item.quantity}`}
-              </span>
-              <span className="font-semibold">{formatNaira(cartItemTotal(item))}</span>
-            </div>
-          ))}
-        </div>
-        <div className="mt-3 space-y-1 border-t border-line pt-3 text-body">
-          <div className="flex justify-between">
-            <span className="text-ink-muted">Subtotal</span>
-            <span>{formatNaira(order.subtotal)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-ink-muted">Delivery</span>
-            <span>{order.delivery_fee === 0 ? 'Free' : formatNaira(order.delivery_fee)}</span>
-          </div>
-          <div className="flex justify-between border-t border-line pt-2 text-lg font-bold text-brand">
-            <span>Total</span>
-            <span>{formatNaira(order.total)}</span>
-          </div>
-        </div>
-      </section>
+      <OrderReceipt order={order} />
 
       <section className="rounded-2xl border border-line bg-white p-4 text-body">
         <h2 className="mb-2 font-bold">{isPickup ? 'Pickup' : 'Delivery'}</h2>
@@ -116,7 +140,7 @@ export default function OrderTrackingPage() {
           {address.fullName}
           <br />
           {isPickup
-            ? address.location
+            ? `Belle Food, ${STORE.address}`
             : [address.street, address.landmark, address.zone].filter(Boolean).join(', ')}
           <br />
           {address.phone}
@@ -126,14 +150,17 @@ export default function OrderTrackingPage() {
       <button
         type="button"
         onClick={showSupport}
-        className="flex items-center justify-center gap-2 rounded-xl border border-line py-3 font-semibold text-ink"
+        className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-line py-3 font-semibold text-ink"
       >
         <MessageCircle size={18} className="text-brand" />
         Need help? Contact support
       </button>
 
-      <Link to="/orders" className="text-center text-body font-semibold text-brand">
-        ← All orders
+      <Link
+        href="/orders"
+        className="flex min-h-[44px] items-center justify-center gap-1 text-body font-semibold text-brand"
+      >
+        <ArrowLeft size={16} /> All orders
       </Link>
     </div>
   )
