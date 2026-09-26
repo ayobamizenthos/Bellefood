@@ -1,6 +1,4 @@
 node_modules
-dist
-dist-ssr
 *.local
 .env
 .env.local
@@ -9,8 +7,6 @@ dist-ssr
 .netlify
 *.log
 npm-debug.log*
-
-# Secrets (never commit)
 
 # Supabase CLI local state
 supabase/.temp
