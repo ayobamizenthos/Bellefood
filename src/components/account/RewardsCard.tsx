@@ -5,7 +5,12 @@ import { Check, Copy, Gift, Share2, Users } from 'lucide-react'
 import { useLoyalty } from '@/hooks/useLoyalty'
 import { SITE } from '@/lib/site'
 import { formatNaira } from '@/lib/format'
+import { copyToClipboard } from '@/lib/text'
 import { Button } from '@/components/ui/Button'
+
+const COPIED_FEEDBACK_MS = 1500
+const RECENT_ACTIVITY = 6
+const SHARE_MESSAGE = 'Order great food on Belle Food and we both earn rewards. Sign up with my link:'
 
 export function RewardsCard() {
   const { points, username, referralCount, settings, ledger, nairaValue, loading, claimUsername } =
@@ -28,25 +33,22 @@ export function RewardsCard() {
     else setClaim('')
   }
 
-  const copy = async () => {
-    if (!referralLink) return
-    await navigator.clipboard.writeText(referralLink)
+  const copyLink = async () => {
+    if (!referralLink || !(await copyToClipboard(referralLink))) return
     setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+    setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS)
   }
 
-  const share = async () => {
+  const shareLink = async () => {
     if (!referralLink) return
-    const text = `Order great food on Belle Food and we both earn rewards. Sign up with my link:`
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: 'Belle Food', text, url: referralLink })
-        return
-      } catch {
-        /* user dismissed */
-      }
+    if (typeof navigator.share === 'function') {
+      const shared = await navigator
+        .share({ title: 'Belle Food', text: SHARE_MESSAGE, url: referralLink })
+        .then(() => true)
+        .catch(() => false)
+      if (shared) return
     }
-    await copy()
+    await copyLink()
   }
 
   return (
@@ -77,15 +79,20 @@ export function RewardsCard() {
         {username ? (
           <>
             <p className="mt-2 text-body text-ink-muted">Share your personal link:</p>
-            <div className="mt-2 flex items-center gap-2 rounded-xl border border-line bg-brand-tint/40 px-3 py-2">
+            <div className="mt-2 flex items-center gap-2 rounded-xl border border-line bg-brand-tint/40 pl-3">
               <span className="min-w-0 flex-1 truncate text-body font-medium">
                 {SITE.url.replace(/^https?:\/\//, '')}/signup?ref={username}
               </span>
-              <button onClick={copy} className="shrink-0 text-brand" aria-label="Copy link">
+              <button
+                type="button"
+                onClick={copyLink}
+                className="grid h-11 w-11 shrink-0 place-items-center text-brand"
+                aria-label={copied ? 'Link copied' : 'Copy link'}
+              >
                 {copied ? <Check size={18} /> : <Copy size={18} />}
               </button>
             </div>
-            <Button onClick={share} fullWidth className="mt-3">
+            <Button onClick={shareLink} fullWidth className="mt-3">
               <Share2 size={16} /> Share my link
             </Button>
           </>
@@ -97,8 +104,9 @@ export function RewardsCard() {
             <div className="mt-2 flex gap-2">
               <input
                 value={claim}
-                onChange={e => setClaim(e.target.value.toLowerCase())}
+                onChange={event => setClaim(event.target.value.toLowerCase())}
                 placeholder="yourname"
+                aria-label="Username"
                 maxLength={20}
                 className="input flex-1"
               />
@@ -115,12 +123,11 @@ export function RewardsCard() {
         <div className="rounded-2xl border border-line bg-white p-4">
           <h3 className="mb-2 font-bold">Points activity</h3>
           <ul className="flex flex-col gap-1.5">
-            {ledger.slice(0, 6).map(entry => (
+            {ledger.slice(0, RECENT_ACTIVITY).map(entry => (
               <li key={entry.id} className="flex items-center justify-between text-body">
                 <span className="capitalize text-ink-muted">{entry.reason.replace(/_/g, ' ')}</span>
                 <span className={entry.delta > 0 ? 'font-semibold text-success' : 'font-semibold text-ink'}>
-                  {entry.delta > 0 ? '+' : ''}
-                  {entry.delta}
+                  {entry.delta > 0 ? `+${entry.delta}` : entry.delta}
                 </span>
               </li>
             ))}

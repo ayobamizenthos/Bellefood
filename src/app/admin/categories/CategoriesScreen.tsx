@@ -1,84 +1,113 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import type { FormEvent } from 'react'
 import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react'
-import { useCategories, type Category } from '@/hooks/useCategories'
+import { useCategories } from '@/hooks/useCategories'
 import { supabase } from '@/lib/supabase'
-import { PageSpinner } from '@/components/ui/PageSpinner'
-import { Button } from '@/components/ui/Button'
-import { ToggleSwitch } from '@/components/ui/ToggleSwitch'
+import { slugify } from '@/lib/text'
+import type { Category, StoreKind } from '@/lib/types'
 import { cn } from '@/lib/cn'
+import { PageSpinner } from '@/components/ui/BrandLoader'
+import { Button } from '@/components/ui/Button'
+import { FormError } from '@/components/ui/Field'
+import { SegmentTab } from '@/components/ui/SegmentTab'
+import { ToggleSwitch } from '@/components/ui/ToggleSwitch'
 
-const slugify = (value: string) =>
-  value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+const SAVE_FAILED = 'That change could not be saved. Please try again.'
 
-export default function AdminCategories() {
+const byOrder = (first: Category, second: Category) => first.sort_order - second.sort_order
+
+export default function CategoriesScreen() {
   const { categories, loading } = useCategories(true)
   const [items, setItems] = useState<Category[]>([])
+  const [store, setStore] = useState<StoreKind>('restaurant')
   const [newLabel, setNewLabel] = useState('')
   const [saving, setSaving] = useState(false)
-  const seeded = useRef(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!seeded.current && categories.length) {
-      setItems(categories)
-      seeded.current = true
-    }
+    setItems(categories)
   }, [categories])
 
-  const add = async () => {
+  const storeItems = items.filter(category => category.store === store).sort(byOrder)
+
+  const patchLocal = (id: string, patch: Partial<Category>) =>
+    setItems(current => current.map(category => (category.id === id ? { ...category, ...patch } : category)))
+
+  const persist = async (id: string, patch: Partial<Category>, previous: Partial<Category>) => {
+    setError('')
+    patchLocal(id, patch)
+    const { error: updateError } = await supabase.from('categories').update(patch).eq('id', id)
+    if (updateError) {
+      patchLocal(id, previous)
+      setError(SAVE_FAILED)
+    }
+  }
+
+  const addCategory = async (event: FormEvent) => {
+    event.preventDefault()
     const label = newLabel.trim()
     if (!label) return
+    setError('')
     setSaving(true)
-    const { data } = await supabase
+    const nextOrder = storeItems.reduce((highest, category) => Math.max(highest, category.sort_order), 0) + 1
+    const { data, error: insertError } = await supabase
       .from('categories')
-      .insert({ label, slug: slugify(label), sort_order: items.length })
+      .insert({ label, slug: slugify(label), sort_order: nextOrder, store })
       .select()
       .single()
-    if (data) setItems(prev => [...prev, data])
-    setNewLabel('')
     setSaving(false)
+    if (insertError || !data) {
+      setError(insertError?.code === '23505' ? 'A category with that name already exists.' : SAVE_FAILED)
+      return
+    }
+    setItems(current => [...current, data])
+    setNewLabel('')
   }
 
-  const rename = (id: string, label: string) => {
-    setItems(prev => prev.map(category => (category.id === id ? { ...category, label } : category)))
-    void supabase.from('categories').update({ label }).eq('id', id)
+  const rename = (category: Category, label: string) => {
+    const trimmed = label.trim()
+    if (!trimmed || trimmed === category.label) return
+    void persist(category.id, { label: trimmed }, { label: category.label })
   }
 
-  const toggleActive = (id: string) => {
-    setItems(prev => {
-      const nextActive = !prev.find(category => category.id === id)?.is_active
-      void supabase.from('categories').update({ is_active: nextActive }).eq('id', id)
-      return prev.map(category =>
-        category.id === id ? { ...category, is_active: nextActive } : category
-      )
-    })
-  }
-
-  const move = (index: number, direction: -1 | 1) => {
+  const move = async (index: number, direction: -1 | 1) => {
     const target = index + direction
-    if (target < 0 || target >= items.length) return
-    const next = [...items]
-    ;[next[index], next[target]] = [next[target], next[index]]
-    setItems(next)
-    ;[index, target].forEach(position => {
-      void supabase.from('categories').update({ sort_order: position }).eq('id', next[position].id)
-    })
+    if (target < 0 || target >= storeItems.length) return
+    const reordered = [...storeItems]
+    ;[reordered[index], reordered[target]] = [reordered[target], reordered[index]]
+    const numbered = reordered.map((category, position) => ({ ...category, sort_order: position + 1 }))
+    const changed = numbered.filter(category => category.sort_order !== storeItems.find(entry => entry.id === category.id)?.sort_order)
+
+    setError('')
+    const snapshot = items
+    setItems(current => current.map(category => numbered.find(entry => entry.id === category.id) ?? category))
+    const updates = await Promise.all(
+      changed.map(category =>
+        supabase.from('categories').update({ sort_order: category.sort_order }).eq('id', category.id)
+      )
+    )
+    if (updates.some(update => update.error)) {
+      setItems(snapshot)
+      setError(SAVE_FAILED)
+    }
   }
 
-  const remove = (id: string, label: string) => {
+  const remove = async (category: Category) => {
     if (
       !window.confirm(
-        `Delete "${label}"? Products in it keep their tag but the storefront filter disappears.`
+        `Delete "${category.label}"? Products in it keep their tag but the storefront filter disappears.`
       )
     )
       return
-    setItems(prev => prev.filter(category => category.id !== id))
-    void supabase.from('categories').delete().eq('id', id)
+    setError('')
+    const { error: deleteError } = await supabase.from('categories').delete().eq('id', category.id)
+    if (deleteError) {
+      setError(SAVE_FAILED)
+      return
+    }
+    setItems(current => current.filter(entry => entry.id !== category.id))
   }
 
   if (loading) return <PageSpinner />
@@ -91,42 +120,55 @@ export default function AdminCategories() {
         storefront.
       </p>
 
-      <div className="flex gap-2">
-        <input
-          value={newLabel}
-          onChange={e => setNewLabel(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && add()}
-          placeholder="New category name"
-          className="input flex-1"
-        />
-        <Button loading={saving} onClick={add}>
-          <Plus size={16} /> Add
-        </Button>
+      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-line bg-white p-1">
+        <SegmentTab active={store === 'restaurant'} onSelect={() => setStore('restaurant')}>
+          Meals
+        </SegmentTab>
+        <SegmentTab active={store === 'supermarket'} onSelect={() => setStore('supermarket')}>
+          Mart
+        </SegmentTab>
       </div>
 
-      <div className="flex flex-col gap-2">
-        {items.map((category, index) => (
-          <div
+      <form onSubmit={addCategory} className="flex gap-2">
+        <input
+          value={newLabel}
+          onChange={event => setNewLabel(event.target.value)}
+          placeholder={store === 'restaurant' ? 'New menu category' : 'New Mart category'}
+          aria-label="New category name"
+          className="input flex-1"
+        />
+        <Button type="submit" loading={saving}>
+          <Plus size={16} /> Add
+        </Button>
+      </form>
+
+      <FormError message={error} />
+
+      <ul className="flex flex-col gap-2">
+        {storeItems.map((category, index) => (
+          <li
             key={category.id}
             className={cn(
-              'flex items-center gap-3 rounded-xl border border-line bg-white p-3 transition-opacity',
+              'flex items-center gap-2 rounded-xl border border-line bg-white p-2 transition-opacity',
               !category.is_active && 'opacity-60'
             )}
           >
-            <div className="flex shrink-0 flex-col">
+            <div className="flex shrink-0">
               <button
+                type="button"
                 onClick={() => move(index, -1)}
                 disabled={index === 0}
-                aria-label="Move up"
-                className="grid h-5 w-6 place-items-center rounded text-ink-muted hover:text-brand disabled:opacity-25"
+                aria-label={`Move ${category.label} up`}
+                className="grid h-11 w-9 place-items-center rounded text-ink-muted hover:text-brand disabled:opacity-25"
               >
                 <ChevronUp size={16} />
               </button>
               <button
+                type="button"
                 onClick={() => move(index, 1)}
-                disabled={index === items.length - 1}
-                aria-label="Move down"
-                className="grid h-5 w-6 place-items-center rounded text-ink-muted hover:text-brand disabled:opacity-25"
+                disabled={index === storeItems.length - 1}
+                aria-label={`Move ${category.label} down`}
+                className="grid h-11 w-9 place-items-center rounded text-ink-muted hover:text-brand disabled:opacity-25"
               >
                 <ChevronDown size={16} />
               </button>
@@ -134,31 +176,31 @@ export default function AdminCategories() {
 
             <input
               defaultValue={category.label}
-              onBlur={e => rename(category.id, e.target.value)}
-              className="min-w-0 flex-1 border-b border-transparent bg-transparent font-medium outline-none focus:border-brand"
+              onBlur={event => rename(category, event.target.value)}
+              aria-label={`Name of ${category.label}`}
+              className="h-11 min-w-0 flex-1 border-b border-transparent bg-transparent font-medium outline-none focus:border-brand"
             />
 
-            <div className="flex shrink-0 items-center gap-2">
-              <span className="text-label font-medium text-ink-muted">
-                {category.is_active ? 'Visible' : 'Hidden'}
-              </span>
-              <ToggleSwitch
-                checked={category.is_active}
-                onChange={() => toggleActive(category.id)}
-                label={category.is_active ? 'Hide category' : 'Show category'}
-              />
-            </div>
+            <span className="hidden text-label font-medium text-ink-muted sm:inline">
+              {category.is_active ? 'Visible' : 'Hidden'}
+            </span>
+            <ToggleSwitch
+              checked={category.is_active}
+              onChange={visible => void persist(category.id, { is_active: visible }, { is_active: category.is_active })}
+              label={category.is_active ? `Hide ${category.label}` : `Show ${category.label}`}
+            />
 
             <button
-              onClick={() => remove(category.id, category.label)}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-danger hover:bg-danger/10"
-              aria-label="Delete"
+              type="button"
+              onClick={() => remove(category)}
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-danger hover:bg-danger/10"
+              aria-label={`Delete ${category.label}`}
             >
               <Trash2 size={16} />
             </button>
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   )
 }

@@ -2,25 +2,33 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
-import { Link, useNavigate, useParams } from '@/lib/router'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { ArrowLeft, ImageUp, Loader2, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { uploadToCloudinary } from '@/lib/cloudinary'
+import { cldThumb } from '@/lib/image'
+import { slugify } from '@/lib/text'
+import type { StoreKind } from '@/lib/types'
 import { useCategories } from '@/hooks/useCategories'
-import { PageSpinner } from '@/components/ui/PageSpinner'
-import { Button } from '@/components/ui/Button'
-import { cn } from '@/lib/cn'
+import { PageSpinner } from '@/components/ui/BrandLoader'
+import { Button, buttonClassName } from '@/components/ui/Button'
+import { Field, FormError } from '@/components/ui/Field'
+import { SegmentTab } from '@/components/ui/SegmentTab'
 
-const slugify = (value: string) =>
-  value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
+const THUMBNAIL_WIDTH = 240
+const STORES: { value: StoreKind; label: string }[] = [
+  { value: 'restaurant', label: 'Restaurant' },
+  { value: 'supermarket', label: 'Supermarket' },
+]
 
-export default function AdminProductEdit() {
-  const { productId } = useParams()
-  const navigate = useNavigate()
+const parseAmount = (raw: string): number | null => {
+  const value = Number(raw)
+  return raw.trim() !== '' && Number.isFinite(value) && value >= 0 ? value : null
+}
+
+export default function ProductEditScreen({ productId }: { productId?: string }) {
+  const router = useRouter()
   const isNew = !productId
 
   const [loading, setLoading] = useState(!isNew)
@@ -28,7 +36,7 @@ export default function AdminProductEdit() {
   const [error, setError] = useState('')
 
   const { categories } = useCategories(true)
-  const [store, setStore] = useState<'restaurant' | 'supermarket'>('restaurant')
+  const [store, setStore] = useState<StoreKind>('restaurant')
   const [name, setName] = useState('')
   const [category, setCategory] = useState('')
   const [price, setPrice] = useState('')
@@ -43,86 +51,110 @@ export default function AdminProductEdit() {
   const imageInputRef = useRef<HTMLInputElement>(null)
 
   const storeCategories = useMemo(
-    () => categories.filter(c => c.store === store),
+    () => categories.filter(entry => entry.store === store),
     [categories, store]
   )
 
   useEffect(() => {
-    if (isNew && storeCategories.length && !storeCategories.some(c => c.slug === category)) {
-      setCategory(storeCategories[0].slug)
-    }
-  }, [isNew, category, storeCategories])
+    if (storeCategories.length === 0) return
+    if (!storeCategories.some(entry => entry.slug === category)) setCategory(storeCategories[0].slug)
+  }, [category, storeCategories])
 
   useEffect(() => {
-    if (isNew) return
-    supabase
-      .from('products')
-      .select('*')
-      .eq('id', productId)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          setStore(data.store === 'supermarket' ? 'supermarket' : 'restaurant')
-          setName(data.name)
-          setCategory(data.category)
-          setPrice(String(data.price))
-          setCost(data.cost ? String(data.cost) : '')
-          setStock(String(data.stock))
-          setLowStock(String(data.low_stock_threshold))
-          setDescription(data.description ?? '')
-          setImages(data.images)
-          setFeatured(data.featured)
-          setInStock(data.in_stock)
-        }
-        setLoading(false)
-      })
-  }, [isNew, productId])
+    if (!productId) return
+    Promise.all([
+      supabase.from('products').select('*').eq('id', productId).maybeSingle(),
+      supabase.from('product_costs').select('cost').eq('product_id', productId).maybeSingle(),
+    ]).then(([{ data: product }, { data: costRow }]) => {
+      if (product) {
+        setStore(product.store === 'supermarket' ? 'supermarket' : 'restaurant')
+        setName(product.name)
+        setCategory(product.category)
+        setPrice(String(product.price))
+        setStock(String(product.stock))
+        setLowStock(String(product.low_stock_threshold))
+        setDescription(product.description ?? '')
+        setImages(product.images)
+        setFeatured(product.featured)
+        setInStock(product.in_stock)
+      }
+      if (costRow) setCost(String(costRow.cost))
+      setLoading(false)
+    })
+  }, [productId])
 
   const uploadImages = async (files: FileList) => {
+    setError('')
     setUploading(true)
-    const uploaded: string[] = []
-    for (const file of Array.from(files)) {
-      const url = await uploadToCloudinary(file)
-      if (url) uploaded.push(url)
-    }
-    setImages(prev => [...prev, ...uploaded])
+    const results = await Promise.allSettled(Array.from(files, file => uploadToCloudinary(file)))
+    const uploaded = results.flatMap(outcome => (outcome.status === 'fulfilled' ? [outcome.value] : []))
+    const failed = results.length - uploaded.length
+    setImages(current => [...current, ...uploaded])
     setUploading(false)
+    if (failed > 0) setError(`${failed} photo${failed === 1 ? '' : 's'} could not be uploaded.`)
     if (imageInputRef.current) imageInputRef.current.value = ''
   }
 
-  const save = async () => {
+  const saveProduct = async () => {
     setError('')
-    if (!name || !price) {
-      setError('Name and price are required.')
+    const priceValue = parseAmount(price)
+    const stockValue = parseAmount(stock)
+    const lowStockValue = parseAmount(lowStock)
+    const costValue = cost.trim() === '' ? null : parseAmount(cost)
+    if (!name.trim() || priceValue === null) {
+      setError('Name and a valid price are required.')
+      return
+    }
+    if (stockValue === null || lowStockValue === null || (cost.trim() !== '' && costValue === null)) {
+      setError('Stock, low stock alert and cost must be numbers of 0 or more.')
+      return
+    }
+    if (!category) {
+      setError('Pick a category. Create one for this store first if the list is empty.')
       return
     }
     setSaving(true)
 
-    const payload = {
+    const details = {
       store,
-      name,
-      slug: slugify(name) || slugify(`${category}-${Date.now()}`),
+      name: name.trim(),
       category,
-      price: Number(price),
-      cost: cost ? Number(cost) : null,
-      stock: Number(stock),
-      low_stock_threshold: Number(lowStock),
-      description: description || null,
-      images: images.filter(url => url.trim()),
+      price: priceValue,
+      stock: Math.trunc(stockValue),
+      low_stock_threshold: Math.trunc(lowStockValue),
+      description: description.trim() || null,
+      images,
       featured,
       in_stock: inStock,
     }
 
-    const result = isNew
-      ? await supabase.from('products').insert(payload)
-      : await supabase.from('products').update(payload).eq('id', productId)
+    const { data: saved, error: saveError } = productId
+      ? await supabase.from('products').update(details).eq('id', productId).select('id').single()
+      : await supabase
+          .from('products')
+          .insert({ ...details, slug: slugify(details.name) || slugify(`${category}-${Date.now()}`) })
+          .select('id')
+          .single()
 
-    setSaving(false)
-    if (result.error) {
-      setError(result.error.message)
+    if (saveError || !saved) {
+      setSaving(false)
+      setError(saveError?.code === '23505' ? 'Another product already uses that name or SKU.' : 'The product could not be saved.')
       return
     }
-    navigate('/admin/products')
+
+    const { error: costError } =
+      costValue === null
+        ? await supabase.from('product_costs').delete().eq('product_id', saved.id)
+        : await supabase
+            .from('product_costs')
+            .upsert({ product_id: saved.id, cost: costValue, updated_at: new Date().toISOString() })
+
+    setSaving(false)
+    if (costError) {
+      setError('The product was saved but its cost price was not. Please try again.')
+      return
+    }
+    router.push('/admin/products')
   }
 
   if (loading) return <PageSpinner />
@@ -130,40 +162,33 @@ export default function AdminProductEdit() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
       <Link
-        to="/admin/products"
-        className="flex items-center gap-1 text-body font-semibold text-brand"
+        href="/admin/products"
+        className="flex min-h-[44px] items-center gap-1 self-start text-body font-semibold text-brand"
       >
         <ArrowLeft size={16} /> Products
       </Link>
       <h1 className="text-2xl font-bold">{isNew ? 'Add Item' : 'Edit Item'}</h1>
 
-      <Field label="Store">
+      <fieldset className="flex flex-col gap-1.5">
+        <legend className="input-label mb-1.5">Store</legend>
         <div className="grid grid-cols-2 gap-2 rounded-xl border border-line p-1">
-          {(['restaurant', 'supermarket'] as const).map(value => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setStore(value)}
-              className={cn(
-                'rounded-lg py-2 text-body font-semibold capitalize transition-colors',
-                store === value ? 'bg-brand text-white' : 'text-ink-muted'
-              )}
-            >
-              {value}
-            </button>
+          {STORES.map(option => (
+            <SegmentTab key={option.value} active={store === option.value} onSelect={() => setStore(option.value)}>
+              {option.label}
+            </SegmentTab>
           ))}
         </div>
-      </Field>
+      </fieldset>
 
       <Field label="Name">
-        <input value={name} onChange={e => setName(e.target.value)} className="input" />
+        <input value={name} onChange={event => setName(event.target.value)} className="input" />
       </Field>
 
       <Field label="Category">
-        <select value={category} onChange={e => setCategory(e.target.value)} className="input">
-          {storeCategories.map(c => (
-            <option key={c.slug} value={c.slug}>
-              {c.label}
+        <select value={category} onChange={event => setCategory(event.target.value)} className="input">
+          {storeCategories.map(entry => (
+            <option key={entry.slug} value={entry.slug}>
+              {entry.label}
             </option>
           ))}
         </select>
@@ -171,41 +196,26 @@ export default function AdminProductEdit() {
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Price (₦)">
-          <input
-            type="number"
-            value={price}
-            onChange={e => setPrice(e.target.value)}
-            className="input"
-          />
+          <input type="number" min="0" inputMode="decimal" value={price} onChange={event => setPrice(event.target.value)} className="input" />
         </Field>
-        <Field label="Cost price (₦)">
-          <input type="number" value={cost} onChange={e => setCost(e.target.value)} className="input" />
+        <Field label="Cost price (₦)" hint="Only admins can see this.">
+          <input type="number" min="0" inputMode="decimal" value={cost} onChange={event => setCost(event.target.value)} className="input" />
         </Field>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Stock quantity">
-          <input
-            type="number"
-            value={stock}
-            onChange={e => setStock(e.target.value)}
-            className="input"
-          />
+          <input type="number" min="0" inputMode="numeric" value={stock} onChange={event => setStock(event.target.value)} className="input" />
         </Field>
         <Field label="Low stock alert">
-          <input
-            type="number"
-            value={lowStock}
-            onChange={e => setLowStock(e.target.value)}
-            className="input"
-          />
+          <input type="number" min="0" inputMode="numeric" value={lowStock} onChange={event => setLowStock(event.target.value)} className="input" />
         </Field>
       </div>
 
       <Field label="Description">
         <textarea
           value={description}
-          onChange={e => setDescription(e.target.value)}
+          onChange={event => setDescription(event.target.value)}
           rows={3}
           className="w-full rounded-xl border border-line bg-white p-3 text-body outline-none focus:border-brand"
         />
@@ -220,22 +230,21 @@ export default function AdminProductEdit() {
           multiple
           aria-label="Upload photos"
           className="hidden"
-          onChange={e => e.target.files && uploadImages(e.target.files)}
+          onChange={event => event.target.files && void uploadImages(event.target.files)}
         />
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-          {images.map((url, i) => (
-            <div
-              key={i}
-              className="relative aspect-square overflow-hidden rounded-xl border border-line"
-            >
-              <Image src={url} alt="" fill sizes="120px" className="object-cover" />
+          {images.map((url, index) => (
+            <div key={url} className="relative aspect-square overflow-hidden rounded-xl border border-line">
+              <Image src={cldThumb(url, THUMBNAIL_WIDTH)} alt="" fill sizes="120px" className="object-cover" />
               <button
                 type="button"
-                onClick={() => setImages(images.filter((_, idx) => idx !== i))}
-                aria-label="Remove photo"
-                className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-white/90 text-ink shadow-card"
+                onClick={() => setImages(current => current.filter((_, position) => position !== index))}
+                aria-label={`Remove photo ${index + 1}`}
+                className="absolute right-0 top-0 grid h-11 w-11 place-items-center"
               >
-                <X size={14} />
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-white/90 text-ink shadow-card">
+                  <X size={14} />
+                </span>
               </button>
             </div>
           ))}
@@ -256,7 +265,7 @@ export default function AdminProductEdit() {
         <input
           type="checkbox"
           checked={featured}
-          onChange={e => setFeatured(e.target.checked)}
+          onChange={event => setFeatured(event.target.checked)}
           className="h-5 w-5 accent-brand"
         />
         <span className="font-medium">Feature on home page</span>
@@ -266,36 +275,22 @@ export default function AdminProductEdit() {
         <input
           type="checkbox"
           checked={inStock}
-          onChange={e => setInStock(e.target.checked)}
+          onChange={event => setInStock(event.target.checked)}
           className="h-5 w-5 accent-brand"
         />
         <span className="font-medium">In stock (uncheck to mark out of stock)</span>
       </label>
 
-      {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-body text-danger">{error}</p>}
+      <FormError message={error} />
 
       <div className="flex gap-3">
-        <Button
-          variant="secondary"
-          size="lg"
-          className="flex-1"
-          onClick={() => navigate('/admin/products')}
-        >
+        <Link href="/admin/products" className={buttonClassName({ variant: 'secondary', size: 'lg', fullWidth: true })}>
           Cancel
-        </Button>
-        <Button size="lg" className="flex-1" loading={saving} onClick={save}>
+        </Link>
+        <Button size="lg" fullWidth loading={saving} onClick={saveProduct}>
           Save Item
         </Button>
       </div>
     </div>
-  )
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="flex flex-col gap-1.5">
-      <span className="input-label">{label}</span>
-      {children}
-    </label>
   )
 }

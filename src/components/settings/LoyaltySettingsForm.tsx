@@ -3,31 +3,51 @@
 import { useEffect, useState } from 'react'
 import { Check, Gift } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { LOYALTY_DEFAULTS } from '@/hooks/useLoyalty'
+import type { LoyaltySettings } from '@/lib/types'
 import { Button } from '@/components/ui/Button'
+import { Field, FormError } from '@/components/ui/Field'
 
-interface LoyaltyForm {
-  naira_per_point: string
-  earn_per_order: string
-  earn_per_referral: string
-  welcome_bonus: string
-}
+type LoyaltyForm = Record<keyof LoyaltySettings, string>
 
-const FIELDS: { key: keyof LoyaltyForm; label: string; hint: string }[] = [
-  { key: 'naira_per_point', label: 'Naira value per point (₦)', hint: 'What 1 point is worth at checkout' },
-  { key: 'earn_per_order', label: 'Points per order', hint: 'Earned when a payment is confirmed' },
-  { key: 'earn_per_referral', label: 'Points per referral', hint: "When an invited friend's first order is paid" },
-  { key: 'welcome_bonus', label: 'Welcome bonus', hint: 'Points granted to a new customer' },
+const SAVED_FEEDBACK_MS = 2000
+
+const FIELDS: { key: keyof LoyaltySettings; label: string; hint: string; minimum: number }[] = [
+  { key: 'naira_per_point', label: 'Naira value per point (₦)', hint: 'What 1 point is worth at checkout', minimum: 1 },
+  { key: 'earn_per_order', label: 'Points per order', hint: 'Earned when a payment is confirmed', minimum: 0 },
+  { key: 'earn_per_referral', label: 'Points per referral', hint: "When an invited friend's first order is paid", minimum: 0 },
+  { key: 'welcome_bonus', label: 'Welcome bonus', hint: 'Points granted to a new customer', minimum: 0 },
 ]
 
+const toForm = (settings: LoyaltySettings): LoyaltyForm => ({
+  naira_per_point: String(settings.naira_per_point),
+  earn_per_order: String(settings.earn_per_order),
+  earn_per_referral: String(settings.earn_per_referral),
+  welcome_bonus: String(settings.welcome_bonus),
+})
+
+function parseForm(form: LoyaltyForm): LoyaltySettings | string {
+  for (const field of FIELDS) {
+    const raw = form[field.key].trim()
+    const value = Number(raw)
+    const whole = field.key !== 'naira_per_point'
+    if (raw === '' || !Number.isFinite(value) || value < field.minimum || (whole && !Number.isInteger(value))) {
+      return `${field.label} must be ${whole ? 'a whole number' : 'a number'} of at least ${field.minimum}.`
+    }
+  }
+  return {
+    naira_per_point: Number(form.naira_per_point),
+    earn_per_order: Number(form.earn_per_order),
+    earn_per_referral: Number(form.earn_per_referral),
+    welcome_bonus: Number(form.welcome_bonus),
+  }
+}
+
 export function LoyaltySettingsForm() {
-  const [form, setForm] = useState<LoyaltyForm>({
-    naira_per_point: '100',
-    earn_per_order: '10',
-    earn_per_referral: '5',
-    welcome_bonus: '0',
-  })
+  const [form, setForm] = useState<LoyaltyForm>(toForm(LOYALTY_DEFAULTS))
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     supabase
@@ -35,31 +55,29 @@ export function LoyaltySettingsForm() {
       .select('naira_per_point, earn_per_order, earn_per_referral, welcome_bonus')
       .maybeSingle()
       .then(({ data }) => {
-        if (data)
-          setForm({
-            naira_per_point: String(data.naira_per_point),
-            earn_per_order: String(data.earn_per_order),
-            earn_per_referral: String(data.earn_per_referral),
-            welcome_bonus: String(data.welcome_bonus),
-          })
+        if (data) setForm(toForm(data))
       })
   }, [])
 
   const save = async () => {
+    setError('')
+    const parsed = parseForm(form)
+    if (typeof parsed === 'string') {
+      setError(parsed)
+      return
+    }
     setSaving(true)
-    await supabase
+    const { error: saveError } = await supabase
       .from('loyalty_settings')
-      .update({
-        naira_per_point: Number(form.naira_per_point) || 0,
-        earn_per_order: Math.trunc(Number(form.earn_per_order) || 0),
-        earn_per_referral: Math.trunc(Number(form.earn_per_referral) || 0),
-        welcome_bonus: Math.trunc(Number(form.welcome_bonus) || 0),
-        updated_at: new Date().toISOString(),
-      })
+      .update({ ...parsed, updated_at: new Date().toISOString() })
       .eq('id', true)
     setSaving(false)
+    if (saveError) {
+      setError('Loyalty settings could not be saved. Please try again.')
+      return
+    }
     setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    setTimeout(() => setSaved(false), SAVED_FEEDBACK_MS)
   }
 
   return (
@@ -71,18 +89,18 @@ export function LoyaltySettingsForm() {
         <p className="text-label text-ink-muted">Points pay for meals and delivery only.</p>
       </div>
       {FIELDS.map(field => (
-        <label key={field.key} className="flex flex-col gap-1.5">
-          <span className="input-label">{field.label}</span>
+        <Field key={field.key} label={field.label} hint={field.hint}>
           <input
             type="number"
-            min="0"
+            inputMode="numeric"
+            min={field.minimum}
             value={form[field.key]}
-            onChange={e => setForm({ ...form, [field.key]: e.target.value })}
+            onChange={event => setForm({ ...form, [field.key]: event.target.value })}
             className="input"
           />
-          <span className="text-label text-ink-muted">{field.hint}</span>
-        </label>
+        </Field>
       ))}
+      <FormError message={error} />
       <Button loading={saving} onClick={save}>
         {saved ? (
           <>

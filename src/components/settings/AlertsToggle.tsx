@@ -6,11 +6,11 @@ import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch'
 
 export function AlertsToggle() {
-  const alertsEnabled = usePreferences(s => s.alertsEnabled)
-  const setAlerts = usePreferences(s => s.setAlerts)
+  const alertsEnabled = usePreferences(state => state.alertsEnabled)
+  const setAlerts = usePreferences(state => state.setAlerts)
   const { supported, state, subscribe, unsubscribe } = usePushNotifications()
 
-  const handleChange = (enabled: boolean) => {
+  const toggleAlerts = (enabled: boolean) => {
     setAlerts(enabled)
     if (!supported) return
     if (enabled) void subscribe()
@@ -34,7 +34,7 @@ export function AlertsToggle() {
           </span>
         </span>
       </span>
-      <ToggleSwitch checked={alertsEnabled} onChange={handleChange} label="Order alerts" />
+      <ToggleSwitch checked={alertsEnabled} onChange={toggleAlerts} label="Order alerts" />
     </div>
   )
 }

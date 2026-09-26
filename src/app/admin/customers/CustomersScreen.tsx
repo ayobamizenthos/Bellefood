@@ -1,16 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, Search } from 'lucide-react'
+import { ChevronDown, Gift, Search } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAdminCustomers } from '@/hooks/useAdmin'
 import { formatDate, formatDateTime, formatNaira } from '@/lib/format'
 import type { Order, Profile } from '@/lib/types'
-import { PageSpinner } from '@/components/ui/PageSpinner'
-import { StatusPill } from '@/components/admin/StatusPill'
+import { PageSpinner } from '@/components/ui/BrandLoader'
+import { StatusPill } from '@/components/order/StatusPill'
 import { cn } from '@/lib/cn'
 
-export default function AdminCustomers() {
+export default function CustomersScreen() {
   const { customers, loading } = useAdminCustomers()
   const [search, setSearch] = useState('')
 
@@ -33,6 +33,7 @@ export default function AdminCustomers() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search by name or phone…"
+          aria-label="Search customers"
           className="input pl-10"
         />
       </div>
@@ -55,7 +56,7 @@ function CustomerCard({ customer }: { customer: Profile }) {
   const [open, setOpen] = useState(false)
   const [orders, setOrders] = useState<Order[] | null>(null)
 
-  const toggle = async () => {
+  const toggleHistory = async () => {
     const next = !open
     setOpen(next)
     if (next && orders === null) {
@@ -71,7 +72,8 @@ function CustomerCard({ customer }: { customer: Profile }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-white">
       <button
-        onClick={toggle}
+        onClick={toggleHistory}
+        aria-expanded={open}
         className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-brand-tint/40"
       >
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand text-sm font-bold text-white">
@@ -98,8 +100,8 @@ function CustomerCard({ customer }: { customer: Profile }) {
       {open && (
         <div className="border-t border-line px-4 py-3">
           <div className="mb-3 flex flex-wrap gap-2 text-label">
-            <span className="rounded-full bg-brand-tint px-2.5 py-1 font-semibold text-brand">
-              🎁 {customer.points.toLocaleString()} points
+            <span className="inline-flex items-center gap-1 rounded-full bg-brand-tint px-2.5 py-1 font-semibold text-brand">
+              <Gift size={12} /> {customer.points.toLocaleString()} points
             </span>
             {customer.username && (
               <span className="rounded-full bg-line/50 px-2.5 py-1 font-medium text-ink">
