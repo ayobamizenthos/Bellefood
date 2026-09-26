@@ -29,20 +29,15 @@
     @apply outline-none ring-2 ring-brand ring-offset-2 ring-offset-white;
   }
 
-  /* The app ships a single light brand theme. When the device is in dark mode
-     (or force-dark), keep the top bar as an intentional dark bar with the cream
-     wordmark so the logo and controls never wash out. */
+  /* The dark wordmark swaps in under dark mode, so the bar behind it goes dark as well. */
   @media (prefers-color-scheme: dark) {
     .site-header {
-      background-color: rgba(18, 18, 18, 0.92) !important;
-      border-color: rgba(255, 255, 255, 0.08) !important;
+      background-color: theme('colors.ink.DEFAULT / 92%') !important;
+      border-color: theme('colors.white / 8%') !important;
     }
-    .site-header a,
-    .site-header button {
-      color: #f4f4f5;
-    }
-    .site-header :where(a, button) svg {
-      color: #f4f4f5;
+    .site-header :where(a, button):not([aria-current='page']),
+    .site-header :where(a, button):not([aria-current='page']) svg {
+      color: theme('colors.ink.inverse');
     }
   }
 }

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { SITE } from '@/lib/site'
-import { createPublicClient } from '@/lib/supabase-public'
+import { createPublicClient } from '@/lib/supabase'
 
 export const revalidate = 3600
 
@@ -8,7 +8,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: SITE.url, changeFrequency: 'daily', priority: 1 },
     { url: `${SITE.url}/shop`, changeFrequency: 'daily', priority: 0.9 },
-    { url: `${SITE.url}/shop?store=supermarket`, changeFrequency: 'daily', priority: 0.9 },
   ]
 
   try {

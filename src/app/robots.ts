@@ -9,7 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         allow: '/',
         disallow: [
           '/admin',
-          '/api/',
           '/cart',
           '/checkout',
           '/account',
@@ -17,6 +16,8 @@ export default function robots(): MetadataRoute.Robots {
           '/notifications',
           '/login',
           '/signup',
+          '/forgot-password',
+          '/reset-password',
         ],
       },
     ],

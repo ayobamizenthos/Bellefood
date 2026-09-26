@@ -1,22 +1,19 @@
-/** @type {import('tailwindcss').Config} */
-const config = {
+import type { Config } from 'tailwindcss'
+import { palette } from './src/lib/palette'
+
+const config: Config = {
   content: ['./src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        brand: {
-          DEFAULT: '#F67C2B',
-          bright: '#FF8B3D',
-          dark: '#E0661A',
-          tint: '#FEF1E8',
-        },
-        ink: {
-          DEFAULT: '#1A1A1A',
-          muted: '#666666',
-        },
-        line: '#E5E5E5',
-        success: '#1E8E4E',
-        danger: '#C62828',
+        brand: palette.brand,
+        ink: palette.ink,
+        cocoa: palette.cocoa,
+        charcoal: palette.charcoal,
+        apricot: palette.apricot,
+        line: palette.line,
+        success: palette.success,
+        danger: palette.danger,
       },
       fontFamily: {
         sans: [
@@ -41,6 +38,10 @@ const config = {
       boxShadow: {
         card: '0 1px 3px rgba(26,26,26,0.06), 0 1px 2px rgba(26,26,26,0.04)',
         pop: '0 8px 30px rgba(26,26,26,0.12)',
+        lift: '0 -6px 24px rgba(26,26,26,0.08)',
+      },
+      dropShadow: {
+        glyph: '0 1px 2px rgba(0,0,0,0.35)',
       },
       transitionDuration: {
         250: '250ms',
@@ -72,10 +73,6 @@ const config = {
           '0%, 100%': { transform: 'scale(1)' },
           '50%': { transform: 'scale(1.1)' },
         },
-        'progress-slide': {
-          '0%': { transform: 'translateX(-100%)' },
-          '100%': { transform: 'translateX(400%)' },
-        },
       },
       animation: {
         'fade-in': 'fade-in 250ms ease-out',
@@ -84,7 +81,6 @@ const config = {
         'check-pop': 'check-pop 520ms 130ms cubic-bezier(0.16, 1, 0.3, 1) both',
         'ring-out': 'ring-out 900ms 200ms ease-out both',
         'logo-pulse': 'logo-pulse 1.1s ease-in-out infinite',
-        'progress-slide': 'progress-slide 1s ease-in-out infinite',
       },
     },
   },

@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { SITE } from '@/lib/site'
+import { palette } from '@/lib/palette'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -10,8 +11,8 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',
-    background_color: '#FFFFFF',
-    theme_color: '#F67C2B',
+    background_color: palette.surface,
+    theme_color: palette.brand.DEFAULT,
     categories: ['shopping', 'business'],
     icons: [
       { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

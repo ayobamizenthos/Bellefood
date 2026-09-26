@@ -1,18 +1,17 @@
-const CLOUD_NAME = 'nmmsdyna'
-const UPLOAD_PRESET = 'bellefood_unsigned'
+import { config } from './config'
 
-export async function uploadToCloudinary(file: File): Promise<string | null> {
+export async function uploadToCloudinary(file: File): Promise<string> {
   const form = new FormData()
   form.append('file', file)
-  form.append('upload_preset', UPLOAD_PRESET)
+  form.append('upload_preset', config.cloudinaryUploadPreset)
 
-  const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-    method: 'POST',
-    body: form,
-  })
-  if (!response.ok) return null
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${config.cloudinaryCloudName}/image/upload`,
+    { method: 'POST', body: form }
+  )
+  if (!response.ok) throw new Error(`${file.name} could not be uploaded.`)
 
-  const data = (await response.json()) as { secure_url?: string }
-  if (!data.secure_url) return null
-  return data.secure_url.replace('/upload/', '/upload/f_auto,q_auto/')
+  const upload = (await response.json()) as { secure_url?: string }
+  if (!upload.secure_url) throw new Error(`${file.name} could not be uploaded.`)
+  return upload.secure_url.replace('/upload/', '/upload/f_auto,q_auto/')
 }

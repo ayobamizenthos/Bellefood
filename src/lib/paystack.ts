@@ -1,3 +1,5 @@
+import { config } from './config'
+
 const SCRIPT_SRC = 'https://js.paystack.co/v2/inline.js'
 
 interface PaystackPopup {
@@ -19,20 +21,24 @@ declare global {
   }
 }
 
-let loader: Promise<void> | null = null
+let scriptLoad: Promise<void> | null = null
 
 function loadScript(): Promise<void> {
   if (window.PaystackPop) return Promise.resolve()
-  if (loader) return loader
-  loader = new Promise((resolve, reject) => {
+  if (scriptLoad) return scriptLoad
+  scriptLoad = new Promise((resolve, reject) => {
     const script = document.createElement('script')
     script.src = SCRIPT_SRC
     script.async = true
     script.onload = () => resolve()
-    script.onerror = () => reject(new Error('Unable to load Paystack'))
+    script.onerror = () => {
+      script.remove()
+      scriptLoad = null
+      reject(new Error('Unable to load Paystack'))
+    }
     document.head.appendChild(script)
   })
-  return loader
+  return scriptLoad
 }
 
 export async function payWithPaystack(options: {
@@ -41,17 +47,13 @@ export async function payWithPaystack(options: {
   reference: string
   orderId: string
 }): Promise<{ reference: string } | null> {
-  const key =
-    process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY ??
-    'pk_test_ab8eecf2a87da448ad9f051fce756ac5d53812b5'
-
   await loadScript()
-  if (!window.PaystackPop) throw new Error('Unable to load Paystack')
+  const Popup = window.PaystackPop
+  if (!Popup) throw new Error('Unable to load Paystack')
 
   return new Promise(resolve => {
-    const popup = new window.PaystackPop!()
-    popup.newTransaction({
-      key,
+    new Popup().newTransaction({
+      key: config.paystackPublicKey,
       email: options.email,
       amount: Math.round(options.amountNaira * 100),
       currency: 'NGN',
