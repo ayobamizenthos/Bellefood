@@ -13,6 +13,8 @@ const admin = createClient(
 )
 
 const BATCH = 200
+// The longest push services will hold an alert for a phone that is offline.
+const FOUR_WEEKS = 60 * 60 * 24 * 28
 
 interface Pending {
   id: string
@@ -110,7 +112,7 @@ Deno.serve(async () => {
               keys: { p256dh: device.p256dh_key, auth: device.auth_key },
             },
             payload,
-            { TTL: 86400, urgency: 'high' }
+            { TTL: FOUR_WEEKS, urgency: 'high' }
           )
         )
       )
