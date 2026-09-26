@@ -1,17 +1,25 @@
 'use client'
 
 import { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from '@/lib/router'
-import { Eye, EyeOff } from 'lucide-react'
+import type { FormEvent } from 'react'
+import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { MailCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { safeRedirectPath } from '@/lib/routes'
 import { Button } from '@/components/ui/Button'
+import { Field, FormError } from '@/components/ui/Field'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { AuthShell } from '@/components/layout/AuthShell'
 
-export default function SignupPage() {
-  const navigate = useNavigate()
-  const [params] = useSearchParams()
-  const from = params.get('from') || '/'
-  const referral = (params.get('ref') || '').toLowerCase().trim()
+const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/
+const MIN_PASSWORD_LENGTH = 8
+
+export default function SignupScreen() {
+  const router = useRouter()
+  const params = useSearchParams()
+  const from = safeRedirectPath(params.get('from'))
+  const referral = (params.get('ref') ?? '').toLowerCase().trim()
 
   const [fullName, setFullName] = useState('')
   const [username, setUsername] = useState('')
@@ -22,24 +30,35 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false)
 
-  const submit = async (event: React.FormEvent) => {
+  const createAccount = async (event: FormEvent) => {
     event.preventDefault()
     setError('')
-    if (!/^[a-z0-9_]{3,20}$/.test(username)) {
+    if (!USERNAME_PATTERN.test(username)) {
       setError('Username must be 3-20 lowercase letters, numbers or underscore.')
+      return
+    }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`)
       return
     }
     if (password !== confirm) {
       setError('Passwords do not match.')
       return
     }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.')
+
+    setLoading(true)
+    const { data: available, error: availabilityError } = await supabase.rpc('username_available', {
+      p_username: username,
+    })
+    if (availabilityError || !available) {
+      setLoading(false)
+      setError(availabilityError ? 'Could not check that username. Please try again.' : 'That username is taken.')
       return
     }
-    setLoading(true)
-    const { error: signUpError } = await supabase.auth.signUp({
+
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { full_name: fullName, phone, username, referral } },
@@ -49,7 +68,30 @@ export default function SignupPage() {
       setError(signUpError.message)
       return
     }
-    navigate(from, { replace: true })
+    if (!data.session) {
+      setAwaitingConfirmation(true)
+      return
+    }
+    router.replace(from)
+  }
+
+  if (awaitingConfirmation) {
+    return (
+      <AuthShell title="Check your email" subtitle="One more step to finish signing up.">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <span className="grid h-14 w-14 place-items-center rounded-full bg-success/10 text-success">
+            <MailCheck size={28} />
+          </span>
+          <p className="text-body text-ink-muted">
+            We sent a confirmation link to <span className="font-semibold text-ink">{email}</span>.
+            Open it to activate your account, then sign in.
+          </p>
+          <Link href={`/login?from=${encodeURIComponent(from)}`} className="font-semibold text-brand">
+            Go to sign in
+          </Link>
+        </div>
+      </AuthShell>
+    )
   }
 
   return (
@@ -57,100 +99,77 @@ export default function SignupPage() {
       title="Create your account"
       subtitle="Join Belle Food for faster checkout and live order tracking."
     >
-      <form onSubmit={submit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1.5">
-          <span className="input-label">Full Name</span>
+      <form onSubmit={createAccount} className="flex flex-col gap-4">
+        <Field label="Full Name">
           <input
             required
             value={fullName}
-            onChange={e => setFullName(e.target.value)}
+            onChange={event => setFullName(event.target.value)}
+            autoComplete="name"
             className="input"
           />
-        </label>
+        </Field>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="input-label">Username</span>
+        <Field label="Username" hint="Your permanent referral handle. Share it to earn rewards.">
           <input
             required
             value={username}
-            onChange={e => setUsername(e.target.value.toLowerCase())}
+            onChange={event => setUsername(event.target.value.toLowerCase())}
             placeholder="yourname"
             maxLength={20}
             autoComplete="username"
             className="input"
           />
-          <span className="text-label text-ink-muted">
-            Your permanent referral handle — share it to earn rewards.
-          </span>
-        </label>
+        </Field>
 
         {referral && (
           <p className="rounded-lg bg-brand-tint px-3 py-2 text-label text-brand">
-            Invited by <span className="font-semibold">@{referral}</span> — you both earn points on
+            Invited by <span className="font-semibold">@{referral}</span>. You both earn points on
             your first order.
           </p>
         )}
 
-        <label className="flex flex-col gap-1.5">
-          <span className="input-label">Email</span>
+        <Field label="Email">
           <input
             type="email"
             required
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={event => setEmail(event.target.value)}
             className="input"
             autoComplete="email"
           />
-        </label>
+        </Field>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="input-label">Phone</span>
+        <Field label="Phone">
           <input
             type="tel"
             value={phone}
-            onChange={e => setPhone(e.target.value)}
+            onChange={event => setPhone(event.target.value)}
             className="input"
             autoComplete="tel"
           />
-        </label>
+        </Field>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="input-label">Password</span>
-          <div className="relative">
-            <input
-              type={showPassword ? 'text' : 'password'}
-              required
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="input pr-11"
-              autoComplete="new-password"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(v => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted"
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-            >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
-        </label>
-
-        <label className="flex flex-col gap-1.5">
-          <span className="input-label">Confirm Password</span>
-          <input
-            type={showPassword ? 'text' : 'password'}
-            required
-            value={confirm}
-            onChange={e => setConfirm(e.target.value)}
-            className="input"
+        <Field label="Password">
+          <PasswordInput
+            value={password}
+            onChange={setPassword}
+            visible={showPassword}
+            onToggleVisible={() => setShowPassword(visible => !visible)}
             autoComplete="new-password"
           />
-        </label>
+        </Field>
 
-        {error && (
-          <p className="rounded-lg bg-danger/10 px-3 py-2 text-body text-danger">{error}</p>
-        )}
+        <Field label="Confirm Password">
+          <PasswordInput
+            value={confirm}
+            onChange={setConfirm}
+            visible={showPassword}
+            autoComplete="new-password"
+          />
+        </Field>
+
+        <FormError message={error} />
 
         <Button type="submit" size="lg" fullWidth loading={loading}>
           Create Account
@@ -159,11 +178,8 @@ export default function SignupPage() {
 
       <p className="mt-5 text-center text-body text-ink-muted">
         Already have an account?{' '}
-        <Link
-          to={`/login?from=${encodeURIComponent(from)}`}
-          className="font-semibold text-brand"
-        >
-          Login
+        <Link href={`/login?from=${encodeURIComponent(from)}`} className="font-semibold text-brand">
+          Sign in
         </Link>
       </p>
     </AuthShell>

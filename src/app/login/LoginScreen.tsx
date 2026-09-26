@@ -1,16 +1,20 @@
 'use client'
 
 import { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from '@/lib/router'
-import { Eye, EyeOff } from 'lucide-react'
+import type { FormEvent } from 'react'
+import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { safeRedirectPath } from '@/lib/routes'
 import { Button } from '@/components/ui/Button'
+import { Field, FormError } from '@/components/ui/Field'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { AuthShell } from '@/components/layout/AuthShell'
 
-export default function LoginPage() {
-  const navigate = useNavigate()
-  const [params] = useSearchParams()
-  const from = params.get('from') || '/'
+export default function LoginScreen() {
+  const router = useRouter()
+  const params = useSearchParams()
+  const from = safeRedirectPath(params.get('from'))
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -18,7 +22,7 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const submit = async (event: React.FormEvent) => {
+  const signIn = async (event: FormEvent) => {
     event.preventDefault()
     setError('')
     setLoading(true)
@@ -30,84 +34,62 @@ export default function LoginPage() {
     }
 
     let destination = from
-    if (from === '/' && data.user) {
+    if (from === '/') {
       const { data: profile } = await supabase
         .from('profiles')
         .select('is_admin')
         .eq('id', data.user.id)
-        .single()
+        .maybeSingle()
       if (profile?.is_admin) destination = '/admin'
     }
     setLoading(false)
-    navigate(destination, { replace: true })
+    router.replace(destination)
   }
 
   return (
     <AuthShell title="Welcome back" subtitle="Sign in to track orders and check out faster.">
-      <form onSubmit={submit} className="flex flex-col gap-4">
+      <form onSubmit={signIn} className="flex flex-col gap-4">
         <Field label="Email">
           <input
             type="email"
             required
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={event => setEmail(event.target.value)}
             className="input"
             autoComplete="email"
           />
         </Field>
 
         <Field label="Password">
-          <div className="relative">
-            <input
-              type={showPassword ? 'text' : 'password'}
-              required
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="input pr-11"
-              autoComplete="current-password"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(v => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted"
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-            >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
+          <PasswordInput
+            value={password}
+            onChange={setPassword}
+            visible={showPassword}
+            onToggleVisible={() => setShowPassword(visible => !visible)}
+            autoComplete="current-password"
+          />
         </Field>
 
-        <Link to="/forgot-password" className="-mt-1 self-end text-body font-semibold text-brand">
+        <Link
+          href="/forgot-password"
+          className="-mt-1 flex min-h-[44px] items-center self-end text-body font-semibold text-brand"
+        >
           Forgot password?
         </Link>
 
-        {error && (
-          <p className="rounded-lg bg-danger/10 px-3 py-2 text-body text-danger">{error}</p>
-        )}
+        <FormError message={error} />
 
         <Button type="submit" size="lg" fullWidth loading={loading}>
-          Login
+          Sign in
         </Button>
       </form>
 
       <p className="mt-5 text-center text-body text-ink-muted">
         Don&apos;t have an account?{' '}
-        <Link
-          to={`/signup?from=${encodeURIComponent(from)}`}
-          className="font-semibold text-brand"
-        >
-          Sign Up
+        <Link href={`/signup?from=${encodeURIComponent(from)}`} className="font-semibold text-brand">
+          Sign up
         </Link>
       </p>
     </AuthShell>
-  )
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-body font-semibold">{label}</span>
-      {children}
-    </label>
   )
 }

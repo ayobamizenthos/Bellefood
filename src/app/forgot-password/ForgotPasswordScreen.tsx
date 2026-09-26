@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Link } from '@/lib/router'
+import type { FormEvent } from 'react'
+import Link from 'next/link'
 import { MailCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { SITE } from '@/lib/site'
 import { Button } from '@/components/ui/Button'
+import { Field, FormError } from '@/components/ui/Field'
 import { AuthShell } from '@/components/layout/AuthShell'
 
 export default function ForgotPasswordScreen() {
@@ -14,7 +16,7 @@ export default function ForgotPasswordScreen() {
   const [sent, setSent] = useState(false)
   const [error, setError] = useState('')
 
-  const submit = async (event: React.FormEvent) => {
+  const requestResetLink = async (event: FormEvent) => {
     event.preventDefault()
     setError('')
     setLoading(true)
@@ -40,8 +42,8 @@ export default function ForgotPasswordScreen() {
             If an account exists for <span className="font-semibold text-ink">{email}</span>, we sent
             a link to reset your password. Open it to set a new one.
           </p>
-          <Link to="/login" className="font-semibold text-brand">
-            Back to login
+          <Link href="/login" className="font-semibold text-brand">
+            Back to sign in
           </Link>
         </div>
       </AuthShell>
@@ -50,22 +52,19 @@ export default function ForgotPasswordScreen() {
 
   return (
     <AuthShell title="Reset your password" subtitle="Enter your email and we'll send a reset link.">
-      <form onSubmit={submit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1.5">
-          <span className="text-body font-semibold">Email</span>
+      <form onSubmit={requestResetLink} className="flex flex-col gap-4">
+        <Field label="Email">
           <input
             type="email"
             required
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={event => setEmail(event.target.value)}
             className="input"
             autoComplete="email"
           />
-        </label>
+        </Field>
 
-        {error && (
-          <p className="rounded-lg bg-danger/10 px-3 py-2 text-body text-danger">{error}</p>
-        )}
+        <FormError message={error} />
 
         <Button type="submit" size="lg" fullWidth loading={loading}>
           Send reset link
@@ -74,8 +73,8 @@ export default function ForgotPasswordScreen() {
 
       <p className="mt-5 text-center text-body text-ink-muted">
         Remembered it?{' '}
-        <Link to="/login" className="font-semibold text-brand">
-          Back to login
+        <Link href="/login" className="font-semibold text-brand">
+          Back to sign in
         </Link>
       </p>
     </AuthShell>
