@@ -13,69 +13,59 @@ const cors = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
+const reply = (status: number, body: Record<string, unknown>) =>
+  new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
+
 Deno.serve(async req => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
 
   try {
+    const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '')
+    const { data: auth } = await admin.auth.getUser(token ?? '')
+    if (!auth.user) return reply(401, { ok: false, error: 'sign in required' })
+
     const { reference, orderId } = await req.json()
-    if (!reference || !orderId) {
-      return new Response(JSON.stringify({ ok: false, error: 'missing reference or orderId' }), {
-        status: 400,
-        headers: { ...cors, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const verify = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
-      headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` },
-    })
-    const payload = await verify.json()
-
-    if (!payload.status || payload.data?.status !== 'success') {
-      return new Response(JSON.stringify({ ok: false, error: 'payment not successful' }), {
-        status: 400,
-        headers: { ...cors, 'Content-Type': 'application/json' },
-      })
+    if (typeof reference !== 'string' || typeof orderId !== 'string') {
+      return reply(400, { ok: false, error: 'missing reference or order' })
     }
 
     const { data: order } = await admin
       .from('orders')
-      .select('id, total, payment_status')
+      .select('id, order_number, total, payment_status')
       .eq('id', orderId)
-      .single()
+      .eq('user_id', auth.user.id)
+      .maybeSingle()
+    if (!order) return reply(404, { ok: false, error: 'order not found' })
+    if (order.payment_status === 'verified') return reply(200, { ok: true })
 
-    if (!order) {
-      return new Response(JSON.stringify({ ok: false, error: 'order not found' }), {
-        status: 404,
-        headers: { ...cors, 'Content-Type': 'application/json' },
-      })
-    }
+    // Checkout charges each order under its own order number, so a receipt for
+    // one order can never be presented against another.
+    if (reference !== order.order_number) return reply(400, { ok: false, error: 'reference does not match order' })
 
-    if (payload.data.amount < Math.round(Number(order.total) * 100)) {
-      return new Response(JSON.stringify({ ok: false, error: 'amount mismatch' }), {
-        status: 400,
-        headers: { ...cors, 'Content-Type': 'application/json' },
-      })
-    }
-
-    if (order.payment_status !== 'verified') {
-      await admin
-        .from('orders')
-        .update({
-          payment_status: 'verified',
-          status: 'processing',
-          payment_reference: reference,
-          payment_method: 'paystack',
-        })
-        .eq('id', orderId)
-    }
-
-    return new Response(JSON.stringify({ ok: true }), {
-      headers: { ...cors, 'Content-Type': 'application/json' },
+    const verify = await fetch('https://api.paystack.co/transaction/verify/' + encodeURIComponent(reference), {
+      headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` },
     })
-  } catch (error) {
-    return new Response(JSON.stringify({ ok: false, error: (error as Error).message }), {
-      status: 500,
-      headers: { ...cors, 'Content-Type': 'application/json' },
-    })
+    const payload = await verify.json()
+    const charge = payload.data
+    if (!payload.status || charge?.status !== 'success') return reply(400, { ok: false, error: 'payment not successful' })
+    if (charge.currency !== 'NGN' || charge.metadata?.orderId !== order.id) {
+      return reply(400, { ok: false, error: 'payment does not match order' })
+    }
+    if (charge.amount < Math.round(Number(order.total) * 100)) return reply(400, { ok: false, error: 'amount mismatch' })
+
+    await admin
+      .from('orders')
+      .update({
+        payment_status: 'verified',
+        status: 'processing',
+        payment_reference: reference,
+        payment_method: 'paystack',
+      })
+      .eq('id', order.id)
+      .eq('payment_status', 'pending')
+
+    return reply(200, { ok: true })
+  } catch {
+    return reply(500, { ok: false, error: 'could not verify payment' })
   }
 })
