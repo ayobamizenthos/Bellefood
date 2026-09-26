@@ -14,32 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      carts: {
-        Row: {
-          items: Json
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          items?: Json
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          items?: Json
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "carts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       categories: {
         Row: {
           created_at: string
@@ -131,6 +105,7 @@ export type Database = {
           is_read: boolean
           message: string
           order_id: string | null
+          push_claimed_at: string | null
           pushed_at: string | null
           title: string
           type: Database["public"]["Enums"]["notification_type"]
@@ -142,6 +117,7 @@ export type Database = {
           is_read?: boolean
           message: string
           order_id?: string | null
+          push_claimed_at?: string | null
           pushed_at?: string | null
           title: string
           type: Database["public"]["Enums"]["notification_type"]
@@ -153,6 +129,7 @@ export type Database = {
           is_read?: boolean
           message?: string
           order_id?: string | null
+          push_claimed_at?: string | null
           pushed_at?: string | null
           title?: string
           type?: Database["public"]["Enums"]["notification_type"]
@@ -210,6 +187,7 @@ export type Database = {
       orders: {
         Row: {
           bank_reference: string | null
+          cancel_reason: string | null
           created_at: string
           customer_note: string | null
           delivery_address: Json
@@ -234,6 +212,7 @@ export type Database = {
         }
         Insert: {
           bank_reference?: string | null
+          cancel_reason?: string | null
           created_at?: string
           customer_note?: string | null
           delivery_address: Json
@@ -258,6 +237,7 @@ export type Database = {
         }
         Update: {
           bank_reference?: string | null
+          cancel_reason?: string | null
           created_at?: string
           customer_note?: string | null
           delivery_address?: Json
@@ -335,11 +315,36 @@ export type Database = {
           },
         ]
       }
+      product_costs: {
+        Row: {
+          cost: number
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          cost: number
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          cost?: number
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_costs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           brand: string | null
           category: string
-          cost: number | null
           created_at: string
           description: string | null
           featured: boolean
@@ -362,7 +367,6 @@ export type Database = {
         Insert: {
           brand?: string | null
           category: string
-          cost?: number | null
           created_at?: string
           description?: string | null
           featured?: boolean
@@ -385,7 +389,6 @@ export type Database = {
         Update: {
           brand?: string | null
           category?: string
-          cost?: number | null
           created_at?: string
           description?: string | null
           featured?: boolean
@@ -540,6 +543,7 @@ export type Database = {
           state: string | null
           street: string
           user_id: string
+          zone_id: string | null
         }
         Insert: {
           city: string
@@ -552,6 +556,7 @@ export type Database = {
           state?: string | null
           street: string
           user_id: string
+          zone_id?: string | null
         }
         Update: {
           city?: string
@@ -564,38 +569,20 @@ export type Database = {
           state?: string | null
           street?: string
           user_id?: string
+          zone_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "user_addresses_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_zones"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "user_addresses_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      wishlists: {
-        Row: {
-          product_ids: string[]
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          product_ids?: string[]
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          product_ids?: string[]
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "wishlists_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -614,6 +601,14 @@ export type Database = {
           p_user: string
         }
         Returns: undefined
+      }
+      cancel_order: {
+        Args: { p_order: string; p_reason?: string }
+        Returns: undefined
+      }
+      claim_push_batch: {
+        Args: { p_limit: number }
+        Returns: Database["public"]["Tables"]["notifications"]["Row"][]
       }
       claim_username: { Args: { p_username: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
@@ -635,6 +630,8 @@ export type Database = {
         }
         Returns: Json
       }
+      referral_count: { Args: never; Returns: number }
+      username_available: { Args: { p_username: string }; Returns: boolean }
     }
     Enums: {
       notification_type:
@@ -644,12 +641,14 @@ export type Database = {
         | "delivered"
         | "completed"
         | "new_order"
+        | "cancelled"
       order_status:
         | "pending"
         | "processing"
         | "out_for_delivery"
         | "delivered"
         | "completed"
+        | "cancelled"
       payment_status: "pending" | "verified" | "failed"
     }
     CompositeTypes: {
@@ -785,6 +784,7 @@ export const Constants = {
         "delivered",
         "completed",
         "new_order",
+        "cancelled",
       ],
       order_status: [
         "pending",
@@ -792,6 +792,7 @@ export const Constants = {
         "out_for_delivery",
         "delivered",
         "completed",
+        "cancelled",
       ],
       payment_status: ["pending", "verified", "failed"],
     },

@@ -1,72 +1,26 @@
-import { useCallback, useEffect, useId, useState } from 'react'
+import { useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/stores/auth'
-import type { AppNotification } from '@/lib/types'
+import { selectUnreadCount, useNotificationStore } from '@/stores/notifications'
 
+/** Reads the inbox that NotificationWatcher keeps in sync; it opens no channel of its own. */
 export function useNotifications() {
-  const { session } = useAuth()
-  const userId = session?.user.id
-  const instanceId = useId()
-  const [items, setItems] = useState<AppNotification[]>([])
-  const [loading, setLoading] = useState(true)
-
-  const load = useCallback(async () => {
-    if (!userId) {
-      setItems([])
-      setLoading(false)
-      return
-    }
-    const { data } = await supabase
-      .from('notifications')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(50)
-    setItems(data ?? [])
-    setLoading(false)
-  }, [userId])
-
-  useEffect(() => {
-    load()
-    if (!userId) return
-
-    const channel = supabase
-      .channel(`notifications:${userId}:${instanceId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userId}`,
-        },
-        payload => {
-          if (payload.eventType === 'INSERT') {
-            setItems(prev => [payload.new as AppNotification, ...prev])
-          } else if (payload.eventType === 'UPDATE') {
-            const updated = payload.new as AppNotification
-            setItems(prev => prev.map(n => (n.id === updated.id ? updated : n)))
-          }
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [userId, load, instanceId])
-
-  const unreadCount = items.filter(n => !n.is_read).length
+  const items = useNotificationStore(state => state.items)
+  const loading = useNotificationStore(state => state.loading)
+  const unreadCount = useNotificationStore(selectUnreadCount)
+  const markReadLocally = useNotificationStore(state => state.markRead)
 
   const markAllRead = useCallback(async () => {
-    if (!userId) return
-    setItems(prev => prev.map(n => ({ ...n, is_read: true })))
+    markReadLocally('all')
     await supabase.from('notifications').update({ is_read: true }).eq('is_read', false)
-  }, [userId])
+  }, [markReadLocally])
 
-  const markRead = useCallback(async (id: string) => {
-    setItems(prev => prev.map(n => (n.id === id ? { ...n, is_read: true } : n)))
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id)
-  }, [])
+  const markRead = useCallback(
+    async (id: string) => {
+      markReadLocally([id])
+      await supabase.from('notifications').update({ is_read: true }).eq('id', id)
+    },
+    [markReadLocally]
+  )
 
-  return { items, loading, unreadCount, markAllRead, markRead, reload: load }
+  return { items, loading, unreadCount, markAllRead, markRead }
 }

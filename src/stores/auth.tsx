@@ -1,4 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+'use client'
+
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
@@ -6,6 +8,7 @@ import type { Profile } from '@/lib/types'
 
 interface AuthContextValue {
   session: Session | null
+  userId: string | undefined
   profile: Profile | null
   loading: boolean
   isAdmin: boolean
@@ -15,56 +18,80 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+async function fetchProfile(userId: string): Promise<Profile | null> {
+  const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle()
+  return data
+}
+
+async function clearCachedResponses() {
+  if (typeof caches === 'undefined') return
+  const names = await caches.keys()
+  await Promise.all(names.map(name => caches.delete(name)))
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
+  const [sessionResolved, setSessionResolved] = useState(false)
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  const loadProfile = async (userId: string) => {
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
-    setProfile(data ?? null)
-  }
+  const [profileUserId, setProfileUserId] = useState<string | undefined>()
+  const userId = session?.user.id
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
-      setSession(data.session)
-      if (data.session) await loadProfile(data.session.user.id)
-      setLoading(false)
-    })
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession)
-      if (nextSession) {
-        loadProfile(nextSession.user.id)
-      } else {
-        setProfile(null)
-      }
+      setSessionResolved(true)
     })
-
-    return () => sub.subscription.unsubscribe()
+    return () => subscription.subscription.unsubscribe()
   }, [])
+
+  useEffect(() => {
+    if (!userId) {
+      setProfile(null)
+      setProfileUserId(undefined)
+      return
+    }
+    let current = true
+    fetchProfile(userId).then(loaded => {
+      if (!current) return
+      setProfile(loaded)
+      setProfileUserId(userId)
+    })
+    return () => {
+      current = false
+    }
+  }, [userId])
+
+  const refreshProfile = useCallback(async () => {
+    if (!userId) return
+    const loaded = await fetchProfile(userId)
+    setProfile(loaded)
+  }, [userId])
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut()
+    await clearCachedResponses()
+  }, [])
+
+  const loading = !sessionResolved || (Boolean(userId) && profileUserId !== userId)
 
   const value = useMemo<AuthContextValue>(
     () => ({
       session,
+      userId,
       profile,
       loading,
       isAdmin: profile?.is_admin ?? false,
-      refreshProfile: async () => {
-        if (session) await loadProfile(session.user.id)
-      },
-      signOut: async () => {
-        await supabase.auth.signOut()
-      },
+      refreshProfile,
+      signOut,
     }),
-    [session, profile, loading]
+    [session, userId, profile, loading, refreshProfile, signOut]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
-  return ctx
+  const context = useContext(AuthContext)
+  if (!context) throw new Error('useAuth must be used within AuthProvider')
+  return context
 }

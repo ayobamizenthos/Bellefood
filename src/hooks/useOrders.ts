@@ -3,9 +3,9 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/stores/auth'
 import type { Order, OrderStatusLog } from '@/lib/types'
 
+/** The signed-in person's own orders, even when that person is an admin who can read every order. */
 export function useOrders() {
-  const { session } = useAuth()
-  const userId = session?.user.id
+  const { userId } = useAuth()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -14,20 +14,25 @@ export function useOrders() {
     const { data } = await supabase
       .from('orders')
       .select('*')
+      .eq('user_id', userId)
       .order('created_at', { ascending: false })
     setOrders(data ?? [])
     setLoading(false)
   }, [userId])
 
   useEffect(() => {
-    if (!userId) return
-    load()
+    if (!userId) {
+      setOrders([])
+      setLoading(false)
+      return
+    }
+    void load()
     const channel = supabase
       .channel(`orders-list:${userId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${userId}` },
-        load
+        () => void load()
       )
       .subscribe()
     return () => {
@@ -38,26 +43,25 @@ export function useOrders() {
   return { orders, loading }
 }
 
-export function useOrder(orderId: string | undefined) {
-  const { session } = useAuth()
+export function useOrder(orderId: string) {
+  const { userId } = useAuth()
   const [order, setOrder] = useState<Order | null>(null)
   const [log, setLog] = useState<OrderStatusLog[]>([])
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
-    if (!orderId) return
-    const [orderRes, logRes] = await Promise.all([
-      supabase.from('orders').select('*').eq('id', orderId).single(),
+    const [orderResult, logResult] = await Promise.all([
+      supabase.from('orders').select('*').eq('id', orderId).maybeSingle(),
       supabase.from('order_status_log').select('*').eq('order_id', orderId).order('created_at'),
     ])
-    setOrder(orderRes.data)
-    setLog(logRes.data ?? [])
+    setOrder(orderResult.data)
+    setLog(logResult.data ?? [])
     setLoading(false)
   }, [orderId])
 
   useEffect(() => {
-    load()
-    if (!orderId || !session) return
+    if (!userId) return
+    void load()
 
     const channel = supabase
       .channel(`order:${orderId}`)
@@ -74,22 +78,30 @@ export function useOrder(orderId: string | undefined) {
           table: 'order_status_log',
           filter: `order_id=eq.${orderId}`,
         },
-        payload => setLog(prev => [...prev, payload.new as OrderStatusLog])
+        payload => {
+          const entry = payload.new as OrderStatusLog
+          setLog(previous =>
+            previous.some(existing => existing.id === entry.id) ? previous : [...previous, entry]
+          )
+        }
       )
       .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [orderId, session, load])
+  }, [orderId, userId, load])
 
   const confirmReceipt = useCallback(async () => {
-    if (!orderId) return
-    await supabase
+    const { data, error } = await supabase
       .from('orders')
       .update({ receipt_confirmed: true, status: 'completed' })
       .eq('id', orderId)
-    setOrder(prev => (prev ? { ...prev, receipt_confirmed: true, status: 'completed' } : prev))
+      .select('*')
+      .maybeSingle()
+    if (error) return false
+    if (data) setOrder(data)
+    return data?.status === 'completed'
   }, [orderId])
 
   return { order, log, loading, confirmReceipt, reload: load }

@@ -1,31 +1,23 @@
-'use client'
-
 import { useToasts } from '@/stores/toast'
 import { formatNaira } from '@/lib/format'
 import { SITE } from '@/lib/site'
+import { copyToClipboard } from '@/lib/text'
 import type { Product } from '@/lib/types'
 
 export function useShareProduct() {
-  const push = useToasts(s => s.push)
+  const pushToast = useToasts(state => state.push)
 
   return async (product: Product) => {
     const url = `${SITE.url}/product/${product.slug}`
     const text = `${product.name} · ${formatNaira(product.price)}`
 
-    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
-      try {
-        await navigator.share({ title: product.name, text, url })
-      } catch {
-        return
-      }
+    if (typeof navigator.share === 'function') {
+      await navigator.share({ title: product.name, text, url }).catch(() => undefined)
       return
     }
 
-    try {
-      await navigator.clipboard.writeText(url)
-      push({ title: 'Link copied', message: 'Item link copied. Paste it anywhere to share.' })
-    } catch {
-      return
+    if (await copyToClipboard(url)) {
+      pushToast({ title: 'Link copied', message: 'Item link copied. Paste it anywhere to share.' })
     }
   }
 }

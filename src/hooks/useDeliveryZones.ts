@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { Database } from '@/lib/database.types'
-
-export type DeliveryZone = Database['public']['Tables']['delivery_zones']['Row']
+import type { DeliveryZone } from '@/lib/types'
 
 export function useDeliveryZones(includeInactive = false) {
   const [zones, setZones] = useState<DeliveryZone[]>([])

@@ -1,55 +1,64 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { CartItem } from '@/lib/types'
-import { cartItemKey, cartItemTotal } from '@/lib/types'
+import { MAX_ITEM_QUANTITY, cartItemTotal } from '@/lib/types'
 import { playAddToCart } from '@/lib/sounds'
 
 interface CartState {
   items: CartItem[]
   addItem: (item: CartItem) => void
-  setQuantity: (key: string, quantity: number) => void
-  removeItem: (key: string) => void
+  setQuantity: (productId: string, quantity: number) => void
+  replaceItems: (items: CartItem[]) => void
+  removeItem: (productId: string) => void
   clear: () => void
-  subtotal: () => number
-  count: () => number
 }
+
+const clampQuantity = (quantity: number) => Math.min(quantity, MAX_ITEM_QUANTITY)
 
 export const useCart = create<CartState>()(
   persist(
-    (set, get) => ({
+    set => ({
       items: [],
 
-      addItem: item =>
+      addItem: item => {
+        playAddToCart()
         set(state => {
-          playAddToCart()
-          const key = cartItemKey(item)
-          const existing = state.items.find(i => cartItemKey(i) === key)
-          if (!existing) return { items: [...state.items, item] }
-
+          const existing = state.items.find(entry => entry.productId === item.productId)
+          if (!existing) {
+            return { items: [...state.items, { ...item, quantity: clampQuantity(item.quantity) }] }
+          }
           return {
-            items: state.items.map(i =>
-              cartItemKey(i) === key ? { ...i, quantity: i.quantity + item.quantity } : i
+            items: state.items.map(entry =>
+              entry.productId === item.productId
+                ? { ...entry, quantity: clampQuantity(entry.quantity + item.quantity) }
+                : entry
             ),
           }
-        }),
+        })
+      },
 
-      setQuantity: (key, quantity) =>
+      setQuantity: (productId, quantity) =>
         set(state => ({
-          items: state.items.flatMap(i => {
-            if (cartItemKey(i) !== key) return [i]
+          items: state.items.flatMap(entry => {
+            if (entry.productId !== productId) return [entry]
             if (quantity <= 0) return []
-            return [{ ...i, quantity }]
+            return [{ ...entry, quantity: clampQuantity(quantity) }]
           }),
         })),
 
-      removeItem: key => set(state => ({ items: state.items.filter(i => cartItemKey(i) !== key) })),
+      replaceItems: items => set({ items }),
+
+      removeItem: productId =>
+        set(state => ({ items: state.items.filter(entry => entry.productId !== productId) })),
 
       clear: () => set({ items: [] }),
-
-      subtotal: () => get().items.reduce((sum, i) => sum + cartItemTotal(i), 0),
-
-      count: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
     }),
     { name: 'bellefood-cart', skipHydration: true }
   )
 )
+
+export const selectCartCount = (state: CartState): number =>
+  state.items.reduce((sum, entry) => sum + entry.quantity, 0)
+
+export const selectCartSubtotal = (state: CartState): number =>
+  state.items.reduce((sum, entry) => sum + cartItemTotal(entry), 0)

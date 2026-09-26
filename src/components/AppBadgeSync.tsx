@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useNotifications } from '@/hooks/useNotifications'
+import { selectUnreadCount, useNotificationStore } from '@/stores/notifications'
 
 type BadgingNavigator = Navigator & {
   setAppBadge?: (count?: number) => Promise<void>
@@ -9,7 +9,7 @@ type BadgingNavigator = Navigator & {
 }
 
 export function AppBadgeSync() {
-  const { unreadCount } = useNotifications()
+  const unreadCount = useNotificationStore(selectUnreadCount)
 
   useEffect(() => {
     const nav = navigator as BadgingNavigator

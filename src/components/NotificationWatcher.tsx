@@ -1,99 +1,139 @@
-import { useCallback, useEffect } from 'react'
+'use client'
+
+import { useCallback, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/stores/auth'
 import { useToasts } from '@/stores/toast'
 import { usePreferences } from '@/stores/preferences'
+import { useNotificationStore } from '@/stores/notifications'
 import { playAdminAlert, playCustomerAlert } from '@/lib/sounds'
+import { notificationHref } from '@/lib/routes'
 import type { AppNotification } from '@/lib/types'
 
+const INBOX_SIZE = 50
 const lastAlertKey = (userId: string) => `bellefood-last-alert:${userId}`
 
+function readMarker(userId: string): string | null {
+  try {
+    return localStorage.getItem(lastAlertKey(userId))
+  } catch {
+    return null
+  }
+}
+
+function writeMarker(userId: string, createdAt: string) {
+  try {
+    localStorage.setItem(lastAlertKey(userId), createdAt)
+  } catch {
+    return
+  }
+}
+
+/** Owns the only notifications channel: keeps the inbox store current and sounds new alerts. */
 export function NotificationWatcher() {
-  const { session, isAdmin } = useAuth()
-  const userId = session?.user.id
-  const push = useToasts(s => s.push)
+  const { userId, isAdmin } = useAuth()
+  const pushToast = useToasts(state => state.push)
+  const replaceInbox = useNotificationStore(state => state.replace)
+  const upsertNotification = useNotificationStore(state => state.upsert)
+  const resetInbox = useNotificationStore(state => state.reset)
+  const catchingUp = useRef(false)
 
-  const hrefFor = useCallback(
-    (row: AppNotification) =>
-      row.order_id
-        ? isAdmin
-          ? `/admin/orders/${row.order_id}`
-          : `/orders/${row.order_id}`
-        : '/notifications',
-    [isAdmin]
-  )
-
-  const alert = useCallback(
-    (row?: AppNotification) => {
-      if (isAdmin) playAdminAlert(row?.title ?? 'You have a new order')
-      else playCustomerAlert(row?.title)
+  const announce = useCallback(
+    (notification: AppNotification) => {
+      if (isAdmin) playAdminAlert(notification.title)
+      else playCustomerAlert(notification.title)
+      pushToast({
+        title: notification.title,
+        message: notification.message,
+        href: notificationHref(notification, isAdmin),
+      })
     },
-    [isAdmin]
+    [isAdmin, pushToast]
   )
 
-  // Fire the sound + cards for anything that arrived while the app was closed,
-  // backgrounded, or offline — the moment it becomes visible again.
-  const catchUp = useCallback(async () => {
-    if (!userId || document.visibilityState !== 'visible') return
-    if (!usePreferences.getState().alertsEnabled) return
-    const since = localStorage.getItem(lastAlertKey(userId))
-    const { data } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('is_read', false)
-      .order('created_at', { ascending: false })
-      .limit(30)
-    const fresh = (data ?? []).filter(row => !since || row.created_at > since)
-    if (fresh.length === 0) return
-    localStorage.setItem(lastAlertKey(userId), fresh[0].created_at)
-    alert(
-      fresh.length === 1
-        ? fresh[0]
-        : ({ title: fresh.length + ' new ' + (isAdmin ? 'orders' : 'updates') } as AppNotification)
-    )
-    if (fresh.length === 1) {
-      push({ title: fresh[0].title, message: fresh[0].message, href: hrefFor(fresh[0]) })
-    } else {
-      push({
-        title: `${fresh.length} new ${isAdmin ? 'orders' : 'updates'}`,
+  const announceBacklog = useCallback(
+    (count: number) => {
+      const noun = isAdmin ? 'orders' : 'updates'
+      if (isAdmin) playAdminAlert(`${count} new ${noun}`)
+      else playCustomerAlert(`${count} new ${noun}`)
+      pushToast({
+        title: `${count} new ${noun}`,
         message: isAdmin ? 'Tap to attend to them now.' : 'Tap to see your latest orders.',
         href: isAdmin ? '/admin/orders' : '/orders',
       })
+    },
+    [isAdmin, pushToast]
+  )
+
+  const syncInbox = useCallback(async () => {
+    if (!userId || catchingUp.current) return
+    catchingUp.current = true
+    try {
+      const { data } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(INBOX_SIZE)
+      const inbox = data ?? []
+      replaceInbox(inbox)
+
+      const newest = inbox[0]?.created_at
+      const marker = readMarker(userId)
+      if (!marker) {
+        writeMarker(userId, newest ?? new Date().toISOString())
+        return
+      }
+      const unseen = inbox.filter(item => !item.is_read && item.created_at > marker)
+      if (unseen.length === 0) return
+      writeMarker(userId, unseen[0].created_at)
+      if (!usePreferences.getState().alertsEnabled) return
+      if (unseen.length === 1) announce(unseen[0])
+      else announceBacklog(unseen.length)
+    } finally {
+      catchingUp.current = false
     }
-  }, [userId, isAdmin, push, hrefFor, alert])
+  }, [userId, replaceInbox, announce, announceBacklog])
 
   useEffect(() => {
-    if (!userId) return
+    if (!userId) {
+      resetInbox()
+      return
+    }
 
-    void catchUp()
+    void syncInbox()
 
     const channel = supabase
-      .channel(`notify-watch:${userId}`)
+      .channel(`notifications:${userId}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
         payload => {
-          if (!usePreferences.getState().alertsEnabled) return
-          const row = payload.new as AppNotification
-          localStorage.setItem(lastAlertKey(userId), row.created_at)
-          alert(row)
-          push({ title: row.title, message: row.message, href: hrefFor(row) })
+          const notification = payload.new as AppNotification
+          upsertNotification(notification)
+          writeMarker(userId, notification.created_at)
+          if (usePreferences.getState().alertsEnabled) announce(notification)
         }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+        payload => upsertNotification(payload.new as AppNotification)
       )
       .subscribe()
 
-    const onVisible = () => void catchUp()
-    document.addEventListener('visibilitychange', onVisible)
-    window.addEventListener('online', onVisible)
-    window.addEventListener('focus', onVisible)
+    const syncWhenVisible = () => {
+      if (document.visibilityState === 'visible') void syncInbox()
+    }
+    document.addEventListener('visibilitychange', syncWhenVisible)
+    window.addEventListener('online', syncWhenVisible)
 
     return () => {
       supabase.removeChannel(channel)
-      document.removeEventListener('visibilitychange', onVisible)
-      window.removeEventListener('online', onVisible)
-      window.removeEventListener('focus', onVisible)
+      document.removeEventListener('visibilitychange', syncWhenVisible)
+      window.removeEventListener('online', syncWhenVisible)
     }
-  }, [userId, push, hrefFor, alert, catchUp])
+  }, [userId, syncInbox, upsertNotification, resetInbox, announce])
 
   return null
 }
