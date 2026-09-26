@@ -1,6 +1,6 @@
-import Image from 'next/image'
-import { Link } from '@/lib/router'
 import type { ReactNode } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
 
 export function AuthShell({
   title,
@@ -15,10 +15,10 @@ export function AuthShell({
     <div className="flex min-h-dvh flex-col bg-white">
       <div className="app-shell flex flex-1 flex-col justify-center py-10">
         <div className="mx-auto w-full max-w-app">
-          <Link to="/" className="mb-8 flex items-center justify-center" aria-label="BelleFOOD home">
+          <Link href="/" className="mb-8 flex items-center justify-center" aria-label="Belle Food home">
             <Image
               src="/bellefood-text.png"
-              alt="BelleFOOD, the taste is delicious"
+              alt="Belle Food, the taste is delicious"
               width={1024}
               height={238}
               priority

@@ -2,25 +2,26 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import Image from 'next/image'
+import { BrandPulse } from './BrandLoader'
 
-// Only reveal the overlay once a navigation is genuinely taking a moment, so
-// instant client transitions feel instant instead of being gated by a spinner.
+// Fast client transitions never show the overlay; slow ones keep it up long enough not to flicker.
 const SHOW_DELAY_MS = 180
 const MIN_VISIBLE_MS = 300
+const MAX_VISIBLE_MS = 5000
 
 export function NavLoadingOverlay() {
   const pathname = usePathname()
   const [visible, setVisible] = useState(false)
   const shownAt = useRef(0)
   const showTimer = useRef<ReturnType<typeof setTimeout>>()
-  const prevPath = useRef(pathname)
+  const previousPath = useRef(pathname)
 
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
       if (event.defaultPrevented || event.button !== 0) return
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
-      const anchor = (event.target as HTMLElement).closest('a')
+      if (!(event.target instanceof Element)) return
+      const anchor = event.target.closest('a')
       if (!anchor || anchor.target === '_blank' || anchor.origin !== location.origin) return
       const target = new URL(anchor.href)
       if (target.pathname === location.pathname && target.search === location.search) return
@@ -38,8 +39,8 @@ export function NavLoadingOverlay() {
   }, [])
 
   useEffect(() => {
-    if (pathname === prevPath.current) return
-    prevPath.current = pathname
+    if (pathname === previousPath.current) return
+    previousPath.current = pathname
     clearTimeout(showTimer.current)
     if (!visible) return
     const remaining = Math.max(0, MIN_VISIBLE_MS - (Date.now() - shownAt.current))
@@ -49,25 +50,15 @@ export function NavLoadingOverlay() {
 
   useEffect(() => {
     if (!visible) return
-    const safety = setTimeout(() => setVisible(false), 5000)
-    return () => clearTimeout(safety)
+    const timer = setTimeout(() => setVisible(false), MAX_VISIBLE_MS)
+    return () => clearTimeout(timer)
   }, [visible])
 
   if (!visible) return null
 
   return (
     <div className="fixed inset-0 z-[80] grid animate-fade-in place-items-center bg-white/85 backdrop-blur-sm">
-      <div className="relative grid place-items-center">
-        <span className="absolute h-20 w-20 animate-ping rounded-full bg-brand/15" />
-        <Image
-          src="/bellefood-glyph.png"
-          alt="Loading"
-          width={128}
-          height={128}
-          priority
-          className="relative h-16 w-16 animate-logo-pulse"
-        />
-      </div>
+      <BrandPulse />
     </div>
   )
 }

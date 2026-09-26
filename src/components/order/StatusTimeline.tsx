@@ -1,14 +1,15 @@
 import { Check } from 'lucide-react'
-import { ORDER_STATUSES, ORDER_STATUS_META } from '@/lib/constants'
+import { ORDER_STAGES, ORDER_STATUS_META, PICKUP_STAGE_LABELS } from '@/lib/constants'
 import type { OrderStatus } from '@/lib/constants'
 import type { OrderStatusLog } from '@/lib/types'
 import { formatDateTime } from '@/lib/format'
 import { cn } from '@/lib/cn'
 
-const PICKUP_LABELS: Partial<Record<OrderStatus, string>> = {
-  out_for_delivery: 'Ready for Pickup',
-  delivered: 'Picked Up',
-}
+// Rows written before orders skipped "delivered" still count as reaching the last stage.
+const stages: readonly OrderStatus[] = ORDER_STAGES
+
+const stageIndex = (status: OrderStatus): number =>
+  stages.indexOf(status === 'delivered' ? 'completed' : status)
 
 export function StatusTimeline({
   current,
@@ -19,20 +20,19 @@ export function StatusTimeline({
   log: OrderStatusLog[]
   isPickup: boolean
 }) {
-  const stages: readonly OrderStatus[] = ORDER_STATUSES
-  const currentIndex = ORDER_STATUSES.indexOf(current)
+  const currentIndex = stageIndex(current)
 
   const timestampFor = (status: OrderStatus) =>
     log.find(entry => entry.status === status)?.created_at ?? null
 
   return (
     <ol className="flex flex-col">
-      {stages.map((status, i) => {
-        const reached = i <= currentIndex
-        const isCurrent = i === currentIndex
+      {ORDER_STAGES.map((status, index) => {
+        const reached = index <= currentIndex
+        const isCurrent = index === currentIndex
         const meta = ORDER_STATUS_META[status]
         const timestamp = timestampFor(status)
-        const last = i === stages.length - 1
+        const last = index === ORDER_STAGES.length - 1
 
         return (
           <li key={status} className="flex gap-3">
@@ -50,20 +50,20 @@ export function StatusTimeline({
                 {reached && !isCurrent ? (
                   <Check size={16} />
                 ) : (
-                  <span className="text-label font-bold">{i + 1}</span>
+                  <span className="text-label font-bold">{index + 1}</span>
                 )}
               </span>
               {!last && <span className={cn('w-0.5 flex-1', reached ? 'bg-success' : 'bg-line')} />}
             </div>
 
-            <div className={cn('pb-6', last && 'pb-0')}>
+            <div className={cn(!last && 'pb-6')}>
               <p
                 className={cn(
                   'font-semibold',
                   isCurrent ? 'text-brand' : reached ? 'text-ink' : 'text-ink-muted'
                 )}
               >
-                {(isPickup && PICKUP_LABELS[status]) || meta.label}
+                {(isPickup && PICKUP_STAGE_LABELS[status]) || meta.label}
               </p>
               <p className="text-body text-ink-muted">{meta.description}</p>
               {timestamp && (

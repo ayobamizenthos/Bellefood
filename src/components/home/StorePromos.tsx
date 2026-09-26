@@ -1,4 +1,4 @@
-import { Link } from '@/lib/router'
+import Link from 'next/link'
 import { Clock, Truck, ShoppingBag, ChefHat } from 'lucide-react'
 
 export function StorePromos() {
@@ -16,7 +16,7 @@ export function StorePromos() {
             Lagos or ready for pickup.
           </p>
           <Link
-            to="/shop?store=restaurant"
+            href="/shop?store=restaurant"
             className="mt-1 inline-flex h-11 items-center gap-2 rounded-xl bg-white px-6 font-semibold text-brand transition-transform active:scale-95"
           >
             <ChefHat size={18} /> Order Now

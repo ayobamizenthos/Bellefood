@@ -1,12 +1,12 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Lock } from 'lucide-react'
 import { useAuth } from '@/stores/auth'
-import { useNavigate } from '@/lib/router'
-import { Button } from '@/components/ui/Button'
-import { PageSpinner } from '@/components/ui/PageSpinner'
+import { buttonClassName } from '@/components/ui/Button'
+import { PageSpinner } from '@/components/ui/BrandLoader'
 
 export function AuthGate({
   title,
@@ -18,7 +18,6 @@ export function AuthGate({
   children: ReactNode
 }) {
   const { session, loading } = useAuth()
-  const navigate = useNavigate()
   const pathname = usePathname()
 
   if (loading) return <PageSpinner />
@@ -32,20 +31,18 @@ export function AuthGate({
         <h1 className="text-xl font-bold">{title}</h1>
         <p className="max-w-sm text-body text-ink-muted">{message}</p>
         <div className="mt-2 flex w-full max-w-xs flex-col items-center gap-3">
-          <Button
-            size="lg"
-            fullWidth
-            onClick={() => navigate(`/login?from=${encodeURIComponent(pathname)}`)}
+          <Link
+            href={`/login?from=${encodeURIComponent(pathname)}`}
+            className={buttonClassName({ size: 'lg', fullWidth: true })}
           >
-            Sign In
-          </Button>
-          <button
-            type="button"
-            onClick={() => navigate('/shop')}
-            className="text-body font-semibold text-brand"
+            Sign in
+          </Link>
+          <Link
+            href="/shop"
+            className="flex min-h-[44px] items-center text-body font-semibold text-brand"
           >
             Continue shopping
-          </button>
+          </Link>
         </div>
       </div>
     )

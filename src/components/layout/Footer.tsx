@@ -1,46 +1,49 @@
+'use client'
+
+import type { ReactNode } from 'react'
 import Image from 'next/image'
-import { Link } from '@/lib/router'
+import Link from 'next/link'
 import { Mail, MessageCircle } from 'lucide-react'
 import { useStoreSettings } from '@/hooks/useStoreSettings'
 import { useSupportSheet } from '@/stores/support'
 import { STORE } from '@/lib/constants'
 
 const shopLinks = [
-  { label: 'Restaurant Menu', to: '/shop?store=restaurant' },
-  { label: 'Mart', to: '/shop?store=supermarket' },
-  { label: 'Rice Dishes', to: '/shop?store=restaurant&category=rice' },
-  { label: 'Provisions & Cereals', to: '/shop?store=supermarket&category=provisions' },
-  { label: 'Drinks & Beverages', to: '/shop?store=supermarket&category=beverages' },
+  { label: 'Restaurant Menu', href: '/shop?store=restaurant' },
+  { label: 'Mart', href: '/shop?store=supermarket' },
+  { label: 'Rice Dishes', href: '/shop?store=restaurant&category=rice' },
+  { label: 'Provisions & Cereals', href: '/shop?store=supermarket&category=provisions' },
+  { label: 'Drinks & Beverages', href: '/shop?store=supermarket&category=beverages' },
 ]
 
-const toolLinks = [
-  { label: 'My Orders', to: '/orders' },
-  { label: 'Saved Items', to: '/account' },
-  { label: 'My Account', to: '/account' },
-  { label: 'Contact Us', to: '/account' },
+const accountLinks = [
+  { label: 'My Orders', href: '/orders' },
+  { label: 'Saved Items', href: '/account#saved-items' },
+  { label: 'Notifications', href: '/notifications' },
+  { label: 'My Account', href: '/account' },
 ]
 
 export function Footer() {
   const { settings } = useStoreSettings()
-  const showSupport = useSupportSheet(s => s.show)
+  const showSupport = useSupportSheet(state => state.show)
   const whatsapp = settings?.whatsapp_number || STORE.whatsappNumber
   const email = settings?.support_email || STORE.supportEmail
 
   return (
     <footer className="mt-16 hidden md:block">
-      <div className="relative overflow-hidden rounded-t-[2.5rem] bg-gradient-to-br from-[#3A1E0C] via-brand-dark to-[#4A2410] text-white">
+      <div className="relative overflow-hidden rounded-t-[2.5rem] bg-gradient-to-br from-cocoa via-brand-dark to-cocoa-deep text-white">
         <div className="app-shell relative z-10 grid grid-cols-[1.4fr_1fr_1fr_1fr] gap-10 pb-40 pt-20">
           <div className="flex flex-col gap-5">
             <div className="flex items-center gap-3">
               <Image
                 src="/bellefood-mark.png"
-                alt="Belle Food"
+                alt=""
                 width={44}
                 height={44}
                 className="h-11 w-11 object-contain"
               />
               <span className="flex flex-col leading-none">
-                <span className="text-lg font-bold tracking-tight">BelleFOOD</span>
+                <span className="text-lg font-bold tracking-tight">Belle Food</span>
                 <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-white/70">
                   The taste is delicious
                 </span>
@@ -56,14 +59,14 @@ export function Footer() {
                 target="_blank"
                 rel="noreferrer"
                 aria-label="WhatsApp"
-                className="grid h-10 w-10 place-items-center rounded-full border border-white/25 text-white/80 transition-colors hover:border-white hover:text-white"
+                className="grid h-11 w-11 place-items-center rounded-full border border-white/25 text-white/80 transition-colors hover:border-white hover:text-white"
               >
                 <MessageCircle size={18} />
               </a>
               <a
                 href={`mailto:${email}`}
                 aria-label="Email"
-                className="grid h-10 w-10 place-items-center rounded-full border border-white/25 text-white/80 transition-colors hover:border-white hover:text-white"
+                className="grid h-11 w-11 place-items-center rounded-full border border-white/25 text-white/80 transition-colors hover:border-white hover:text-white"
               >
                 <Mail size={18} />
               </a>
@@ -72,15 +75,15 @@ export function Footer() {
 
           <FooterColumn title="Shop">
             {shopLinks.map(link => (
-              <Link key={link.label} to={link.to} className="footer-link">
+              <Link key={link.label} href={link.href} className="footer-link">
                 {link.label}
               </Link>
             ))}
           </FooterColumn>
 
-          <FooterColumn title="Tools">
-            {toolLinks.map(link => (
-              <Link key={link.label} to={link.to} className="footer-link">
+          <FooterColumn title="Your account">
+            {accountLinks.map(link => (
+              <Link key={link.label} href={link.href} className="footer-link">
                 {link.label}
               </Link>
             ))}
@@ -90,12 +93,7 @@ export function Footer() {
             <button type="button" onClick={showSupport} className="footer-link text-left">
               Contact Support
             </button>
-            <a
-              href={`https://wa.me/${whatsapp}`}
-              target="_blank"
-              rel="noreferrer"
-              className="footer-link"
-            >
+            <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer" className="footer-link">
               WhatsApp
             </a>
             <a href={`mailto:${email}`} className="footer-link">
@@ -109,17 +107,17 @@ export function Footer() {
           aria-hidden
           className="pointer-events-none absolute -bottom-6 left-0 w-full select-none whitespace-nowrap text-center text-[6.5rem] font-bold leading-none tracking-tight text-white/[0.05] lg:text-[8.5rem]"
         >
-          BelleFOOD
+          Belle Food
         </span>
       </div>
     </footer>
   )
 }
 
-function FooterColumn({ title, children }: { title: string; children: React.ReactNode }) {
+function FooterColumn({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-body font-bold text-[#FFC89A]">{title}</h3>
+      <h3 className="text-body font-bold text-apricot">{title}</h3>
       {children}
     </div>
   )

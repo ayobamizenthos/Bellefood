@@ -2,7 +2,8 @@
 
 import type { ReactNode } from 'react'
 import Image from 'next/image'
-import { NavLink, useNavigate } from '@/lib/router'
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   Package,
@@ -16,6 +17,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '@/stores/auth'
 import { cn } from '@/lib/cn'
+import { isRouteActive } from '@/lib/routes'
 import { PushOptIn } from '@/components/layout/PushOptIn'
 import { NavLoadingOverlay } from '@/components/ui/NavLoadingOverlay'
 
@@ -29,12 +31,13 @@ const links: { to: string; label: string; icon: LucideIcon; end?: boolean }[] = 
 ]
 
 export function AdminChrome({ children }: { children: ReactNode }) {
-  const navigate = useNavigate()
+  const router = useRouter()
+  const pathname = usePathname()
   const { signOut } = useAuth()
 
-  const handleSignOut = async () => {
+  const signOutToStore = async () => {
     await signOut()
-    navigate('/')
+    router.push('/')
   }
 
   return (
@@ -48,38 +51,40 @@ export function AdminChrome({ children }: { children: ReactNode }) {
             height={36}
             className="h-9 w-9 shrink-0 object-contain"
           />
-          <span className="font-bold">BelleFOOD Admin</span>
+          <span className="font-bold">Belle Food Admin</span>
         </div>
         <nav className="flex flex-1 flex-col gap-1 p-3">
-          {links.map(({ to, label, icon: Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                cn(
+          {links.map(({ to, label, icon: Icon, end }) => {
+            const active = isRouteActive(pathname, to, end)
+            return (
+              <Link
+                key={to}
+                href={to}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
                   'flex items-center gap-3 rounded-xl px-3 py-2.5 text-body font-medium transition-colors',
-                  isActive ? 'bg-brand text-white' : 'text-ink hover:bg-brand-tint'
-                )
-              }
-            >
-              <Icon size={18} />
-              {label}
-            </NavLink>
-          ))}
+                  active ? 'bg-brand text-white' : 'text-ink hover:bg-brand-tint'
+                )}
+              >
+                <Icon size={18} />
+                {label}
+              </Link>
+            )
+          })}
         </nav>
         <div className="border-t border-line p-3">
-          <NavLink
-            to="/"
+          <Link
+            href="/"
             className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-body font-medium hover:bg-brand-tint"
           >
             <Store size={18} /> View Store
-          </NavLink>
+          </Link>
           <button
-            onClick={handleSignOut}
+            type="button"
+            onClick={signOutToStore}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-body font-medium text-danger hover:bg-danger/10"
           >
-            <LogOut size={18} /> Logout
+            <LogOut size={18} /> Sign out
           </button>
         </div>
       </aside>
@@ -90,11 +95,14 @@ export function AdminChrome({ children }: { children: ReactNode }) {
             <Image src="/bellefood-glyph.png" alt="" width={28} height={28} className="h-7 w-7 object-contain" />
             <span className="font-bold">Admin</span>
           </span>
-          <NavLink to="/" className="flex items-center gap-1.5 rounded-full bg-brand-tint px-3 py-1.5 text-body font-semibold text-brand">
+          <Link
+            href="/"
+            className="flex min-h-[44px] items-center gap-1.5 rounded-full bg-brand-tint px-3 text-body font-semibold text-brand"
+          >
             <Store size={16} /> Store
-          </NavLink>
+          </Link>
         </header>
-        <MobileTabBar />
+        <MobileTabBar pathname={pathname} />
         <main className="app-shell py-6 pb-24 md:pb-6">{children}</main>
       </div>
       <PushOptIn />
@@ -103,25 +111,26 @@ export function AdminChrome({ children }: { children: ReactNode }) {
   )
 }
 
-function MobileTabBar() {
+function MobileTabBar({ pathname }: { pathname: string }) {
   return (
     <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-white md:hidden">
-      {links.map(({ to, label, icon: Icon, end }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end={end}
-          className={({ isActive }) =>
-            cn(
+      {links.map(({ to, label, icon: Icon, end }) => {
+        const active = isRouteActive(pathname, to, end)
+        return (
+          <Link
+            key={to}
+            href={to}
+            aria-current={active ? 'page' : undefined}
+            className={cn(
               'flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium',
-              isActive ? 'text-brand' : 'text-ink-muted'
-            )
-          }
-        >
-          <Icon size={20} />
-          {label}
-        </NavLink>
-      ))}
+              active ? 'text-brand' : 'text-ink-muted'
+            )}
+          >
+            <Icon size={20} />
+            {label}
+          </Link>
+        )
+      })}
     </nav>
   )
 }

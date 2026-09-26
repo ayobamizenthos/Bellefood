@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { Share2, X } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { usePrompts } from '@/stores/prompts'
 
 const REVEAL_DELAY_MS = 2000
+const GLANCE_MS = 4000
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -30,6 +32,7 @@ export function InstallPrompt() {
   const [installed, setInstalled] = useState(false)
   const [iosHint, setIosHint] = useState(false)
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null)
+  const pushPromptVisible = usePrompts(prompts => prompts.pushPromptVisible)
 
   useEffect(() => {
     setMounted(true)
@@ -39,28 +42,31 @@ export function InstallPrompt() {
       event.preventDefault()
       setInstallEvent(event as BeforeInstallPromptEvent)
     }
-    const handleInstalled = () => {
+    const markInstalled = () => {
       setInstalled(true)
       setInstallEvent(null)
     }
     window.addEventListener('beforeinstallprompt', captureInstallPrompt)
-    window.addEventListener('appinstalled', handleInstalled)
+    window.addEventListener('appinstalled', markInstalled)
     return () => {
       window.removeEventListener('beforeinstallprompt', captureInstallPrompt)
-      window.removeEventListener('appinstalled', handleInstalled)
+      window.removeEventListener('appinstalled', markInstalled)
     }
   }, [])
 
-  const canShow = mounted && !installed && !isStandalone() && (Boolean(installEvent) || iosHint)
+  const canShow =
+    mounted &&
+    !installed &&
+    !pushPromptVisible &&
+    !isStandalone() &&
+    (Boolean(installEvent) || iosHint)
 
-  // Roll the pill out from the logo a beat after it becomes available,
-  // then roll it back in on its own after a short glance.
   useEffect(() => {
     if (!canShow) return
     let collapseTimer: ReturnType<typeof setTimeout>
     const revealTimer = setTimeout(() => {
       setCollapsed(false)
-      collapseTimer = setTimeout(() => setCollapsed(true), 4000)
+      collapseTimer = setTimeout(() => setCollapsed(true), GLANCE_MS)
     }, REVEAL_DELAY_MS)
     return () => {
       clearTimeout(revealTimer)
@@ -83,7 +89,7 @@ export function InstallPrompt() {
         <button
           type="button"
           onClick={collapsed ? () => setCollapsed(false) : undefined}
-          aria-label={collapsed ? 'Show install option' : 'BelleFOOD'}
+          aria-label={collapsed ? 'Show install option' : 'Belle Food'}
           className={cn(
             'grid h-12 w-12 shrink-0 place-items-center rounded-full transition-transform',
             collapsed && 'active:scale-95'
@@ -91,7 +97,7 @@ export function InstallPrompt() {
         >
           <Image
             src="/bellefood-glyph.png"
-            alt="Belle Food"
+            alt=""
             width={28}
             height={28}
             className="h-7 w-7 object-contain"
@@ -99,8 +105,10 @@ export function InstallPrompt() {
         </button>
 
         <div
-          className="grid min-w-0 transition-[grid-template-columns] duration-500 ease-out"
-          style={{ gridTemplateColumns: collapsed ? '0fr' : '1fr' }}
+          className={cn(
+            'grid min-w-0 transition-[grid-template-columns] duration-500 ease-out',
+            collapsed ? 'grid-cols-[0fr]' : 'grid-cols-[1fr]'
+          )}
         >
           <div className="overflow-hidden">
             <div className="flex items-center gap-2 pr-1.5">
@@ -112,7 +120,7 @@ export function InstallPrompt() {
                 </p>
               ) : (
                 <p className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink">
-                  Install BelleFOOD app
+                  Install the Belle Food app
                 </p>
               )}
 
@@ -120,7 +128,7 @@ export function InstallPrompt() {
                 <button
                   type="button"
                   onClick={() => void install()}
-                  className="flex h-9 shrink-0 items-center rounded-full bg-brand px-4 text-[13px] font-bold text-white transition-colors hover:bg-brand-dark"
+                  className="flex h-11 shrink-0 items-center rounded-full bg-brand px-4 text-[13px] font-bold text-white transition-colors hover:bg-brand-dark"
                 >
                   Install
                 </button>
@@ -130,7 +138,7 @@ export function InstallPrompt() {
                 type="button"
                 onClick={() => setCollapsed(true)}
                 aria-label="Collapse install prompt"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-brand-tint hover:text-ink"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-brand-tint hover:text-ink"
               >
                 <X size={16} aria-hidden="true" />
               </button>
